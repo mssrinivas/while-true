@@ -10,7 +10,7 @@ class Replicate:
     # initialization method.
     # pass the port of the node and the ports of the nodes connected to it
     def __init__(self):
-        self.hostname="169.105.246.3"
+        self.hostname="162.105.246.4"
         self.start_threads()
 
     def checkforCapacity(self, message_size, hostname):
@@ -18,7 +18,7 @@ class Replicate:
             for line in file:
                 print(line)
                 if hostname in line:
-                    return True
+                    return False
 
     def replicateContent(self, hostname, intial_Replicate_Server):
         # logic to pick up bytes from memory and transmit
@@ -56,7 +56,7 @@ class Replicate:
             message, intial_Replicate_Server, address, FirstServer = self.node.recvfrom(1024)
             if message=="true":
                 print("Trying to replicate at", address)
-                self.replicateContent(intial_Replicate_Server, address)
+                self.replicateContent(intial_Replicate_Server, address[0])
             elif message.isnumeric() and FirstServer == True:
                 print("First Server", intial_Replicate_Server)
                 self.findNeighbors(message, intial_Replicate_Server)
@@ -71,7 +71,7 @@ class Replicate:
                    self.findNeighbors(message, intial_Replicate_Server)
             else:
                 #logic to write to memory
-                print("Write to memory")
+                print("Write to memory" )
 
 
 
