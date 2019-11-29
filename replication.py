@@ -16,13 +16,14 @@ class Replicate:
     def checkforCapacity(self, message_size, hostname):
         with open('/tmp/capacity.txt', 'r') as file:
             for line in file:
+                print(line)
                 if hostname in line:
-                    return 1
+                    return True
 
-    def replicateContent(self, hostname):
+    def replicateContent(self, hostname, intial_Replicate_Server):
         # logic to pick up bytes from memory and transmit
         bytes_read_from_memory = str.encode("Srinivas")
-        self.transmit_message(bytes_read_from_memory,hostname)
+        self.transmit_message(bytes_read_from_memory, intial_Replicate_Server, hostname, False)
 
 
     def findNeighbors(self, message, intial_Replicate_Server):
@@ -43,7 +44,7 @@ class Replicate:
             # and then check the response
             if response == 0:
                 print(hostname, 'up')
-                self.transmit_message(message, intial_Replicate_Server, hostname)
+                self.transmit_message(message, intial_Replicate_Server, hostname, False)
                 break
             else:
                 print(hostname, 'down')
@@ -52,17 +53,19 @@ class Replicate:
 
     def receive_message(self):
         while True:
-            message, intial_Replicate_Server, address, forward = self.node.recvfrom(1024)
+            message, intial_Replicate_Server, address, FirstServer = self.node.recvfrom(1024)
             if message=="true":
-                self.replicateContent(address)
-            elif message.isnumeric() and forward == True:
+                print("Trying to replicate at", address)
+                self.replicateContent(intial_Replicate_Server, address)
+            elif message.isnumeric() and FirstServer == True:
+                print("First Server", intial_Replicate_Server)
                 self.findNeighbors(message, intial_Replicate_Server)
             elif message.isnumeric():
             # Logic to check for write
                 canAccomodate = self.checkforCapacity(message, self.hostname)
                 if canAccomodate:
                     replicate_true = str.encode("true")
-                    self.transmit_message(replicate_true, intial_Replicate_Server)
+                    self.transmit_message(replicate_true, intial_Replicate_Server, address[0], False)
                     print("inside if")
                 else:
                    self.findNeighbors(message, intial_Replicate_Server)
@@ -72,7 +75,7 @@ class Replicate:
 
 
 
-    def transmit_message(self, message_size, hostname):
+    def transmit_message(self, message_size, intial_Replicate_Server, hostname, forward):
         # loop as long as there are susceptible(connected) ports(nodes) to send to
         #data = message
         '''bytesToSend = str.encode(data)
@@ -84,7 +87,7 @@ class Replicate:
         UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         # Send to server using created UDP socket
         print(serverAddressPort)
-        UDPClientSocket.sendto(message_size,self.hostname, serverAddressPort)
+        UDPClientSocket.sendto(message_size, intial_Replicate_Server, serverAddressPort, forward)
         #time.sleep(2)
 
     def start_threads(self):
