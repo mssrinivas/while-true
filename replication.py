@@ -55,8 +55,8 @@ class Replicate:
         while True:
             message, intial_Replicate_Server, address, FirstServer = self.node.recvfrom(1024)
             if message=="true":
-                print("Trying to replicate at", address)
-                self.replicateContent(intial_Replicate_Server, address)
+                print("Trying to replicate at", address[0])
+                self.replicateContent(intial_Replicate_Server, address[0])
             elif message.isnumeric() and FirstServer == True:
                 print("First Server", intial_Replicate_Server)
                 self.findNeighbors(message, intial_Replicate_Server)
