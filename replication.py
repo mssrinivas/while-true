@@ -36,6 +36,7 @@ class Replicate:
                 canAccomodate = self.checkforCapacity(message, hostname)
                 if canAccomodate:
                     replicate_true = str.encode("true")
+                    #update the stats file
                     self.transmit_message(replicate_true, intial_Replicate_Server)
                     print("inside if")
                 else:
