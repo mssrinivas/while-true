@@ -13,12 +13,11 @@ class Replicate:
         self.hostname="169.105.246.3"
         self.start_threads()
 
-    def checkforCapacity(self,message_size, hostname):
+    def checkforCapacity(self, message_size, hostname):
         with open('/tmp/capacity.txt', 'r') as file:
             for line in file:
-                if self.hostname in line:
-                    matchedLine = line
-                    break
+                if hostname in line:
+                    return 1
 
     def replicateContent(self, hostname):
         # logic to pick up bytes from memory and transmit
@@ -26,42 +25,47 @@ class Replicate:
         self.transmit_message(bytes_read_from_memory,hostname)
 
 
+    def findNeighbors(self, message, intial_Replicate_Server):
+        ListofNeigbors = []
+        filepath = '/tmp/neighbors.txt'
+        with open(filepath) as fp:
+            line = fp.readline()
+            cnt = 1
+            while line:
+                line = fp.readline()
+                ListofNeigbors.append(line)
+                cnt += 1
+
+        while len(ListofNeigbors) > 0:
+            forwardIP = random(ListofNeigbors)
+            hostname = str.encode(forwardIP)
+            response = os.system("ping -c 1 " + hostname)
+            # and then check the response
+            if response == 0:
+                print(hostname, 'up')
+                self.transmit_message(message, intial_Replicate_Server, hostname)
+                break
+            else:
+                print(hostname, 'down')
+                ListofNeigbors.remove(forwardIP)
+
+
     def receive_message(self):
         while True:
-            message, intial_Replicate_Server, address = self.node.recvfrom(1024)
+            message, intial_Replicate_Server, address, forward = self.node.recvfrom(1024)
             if message=="true":
                 self.replicateContent(address)
+            elif message.isnumeric() and forward == True:
+                self.findNeighbors(message, intial_Replicate_Server)
             elif message.isnumeric():
             # Logic to check for write
-                canAccomodate = self.checkforCapacity(message, hostname)
+                canAccomodate = self.checkforCapacity(message, self.hostname)
                 if canAccomodate:
                     replicate_true = str.encode("true")
-                    #update the stats file
                     self.transmit_message(replicate_true, intial_Replicate_Server)
                     print("inside if")
                 else:
-                    ListofNeigbors = []
-                    filepath = '/tmp/neighbors.txt'
-                    with open(filepath) as fp:
-                        line = fp.readline()
-                        cnt = 1
-                        while line:
-                            line = fp.readline()
-                            ListofNeigbors.append(line)
-                            cnt += 1
-
-                    while len(ListofNeigbors) > 0:
-                        forwardIP = random(ListofNeigbors)
-                        hostname = str.encode(forwardIP)
-                        response = os.system("ping -c 1 " + hostname)
-                        # and then check the response
-                        if response == 0:
-                            print(hostname, 'up')
-                            self.transmit_message(message, intial_Replicate_Server, hostname)
-                            break
-                        else:
-                            print(hostname, 'down')
-                            ListofNeigbors.remove(forwardIP)
+                   self.findNeighbors(message, intial_Replicate_Server)
             else:
                 #logic to write to memory
                 print("Write to memory")
