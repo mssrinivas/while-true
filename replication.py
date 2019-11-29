@@ -11,6 +11,12 @@ class Replicate:
     # pass the port of the node and the ports of the nodes connected to it
     def __init__(self):
         self.hostname="169.105.246.3"
+        self.node = socket.socket(type=socket.SOCK_DGRAM)
+        # set the address, i.e(hostname and port) of the socket
+        self.hostname = socket.gethostname()
+        self.port = 21000
+        # bind the address to the socket created
+        self.node.bind((self.hostname, self.port))
         self.start_threads()
 
     def checkforCapacity(self, message_size, hostname):
@@ -52,6 +58,7 @@ class Replicate:
 
 
     def receive_message(self):
+        print("here")
         while True:
             message, intial_Replicate_Server, address, FirstServer = self.node.recvfrom(1024)
             if message=="true":
