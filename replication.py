@@ -10,7 +10,7 @@ class Replicate:
     # hold infected nodes
     # initialization method.
     # pass the port of the node and the ports of the nodes connected to it
-    localIP = "169.105.246.3"
+    localIP = "169.105.246.9"
     localPort = 21000
     bufferSize = 1024
     # Create a datagram socket
@@ -36,28 +36,27 @@ class Replicate:
     def replicateContent(self, hostname, intial_Replicate_Server):
         # logic to pick up bytes from memory and transmit
         bytes_read_from_memory = str.encode("Srinivas")
-        self.transmit_message(bytes_read_from_memory, intial_Replicate_Server, hostname, False)
+
+        self.transmit_message(bytes_read_from_memory, intial_Replicate_Server, hostname.decode("utf-8"), False)
 
 
     def findNeighbors(self, message, intial_Replicate_Server):
         ListofNeigbors = []
         filepath = '/tmp/neighbors.txt'
-        with open(filepath) as fp:
-            line = fp.readline()
-            cnt = 1
-            while line:
-                line = fp.readline()
+        with open(filepath, "r") as ins:
+            for line in ins:
+                print(line)
                 ListofNeigbors.append(line)
-                cnt += 1
 
         while len(ListofNeigbors) > 0:
-            forwardIP = random(ListofNeigbors)
+            forwardIP = random.choice(ListofNeigbors)
             hostname = str.encode(forwardIP)
-            response = os.system("ping -c 1 " + hostname)
+            print("ping -c 1 " +hostname.decode("utf-8") )
+            response = os.system("ping -c 1 " +hostname.decode("utf-8"))
             # and then check the response
             if response == 0:
                 print(hostname, 'up')
-                self.transmit_message(message, intial_Replicate_Server, hostname, False)
+                self.transmit_message(message, intial_Replicate_Server, hostname.decode("utf-8"), False)
                 break
             else:
                 print(hostname, 'down')
@@ -70,7 +69,8 @@ class Replicate:
             print(message)
             print(address[0])
             data = json.loads(message.decode())
-            intialReplicaServer = data.get("intialReplicaServer")
+            intialReplicaServer = data.get("initalReplicaServer")
+            print("intialReplicaServer", intialReplicaServer)
             message = data.get("message")
             isFirstServer = data.get("isFirstServer")
             if message=="true":
@@ -84,7 +84,7 @@ class Replicate:
                 canAccomodate = self.checkforCapacity(message, self.hostname)
                 if canAccomodate:
                     replicate_true = str.encode("true")
-                    self.transmit_message(replicate_true, intialReplicaServer, address[0], False)
+                    self.transmit_message(replicate_true, intialReplicaServer, address[0].decode("utf-8"), False)
                     print("inside if")
                 else:
                    self.findNeighbors(message, intialReplicaServer)
@@ -100,11 +100,12 @@ class Replicate:
         '''bytesToSend = str.encode(data)
         print(bytesToSend)'''
         # logic to chose neighbors and check if neighbor is alive and not in list of already transmitted
-        serverAddressPort = (hostname, 22000)
+        serverAddressPort = ("169.105.246.4", 21000)
         bufferSize = 1024
         # Create a UDP socket at client side
         # Send to server using created UDP socket
         message = json.dumps({"isFirstServer": firstServer, "intialReplicaServer": intial_Replicate_Server, "message": message})
+        print("Sending message to",message)
         self.UDPServerSocket.sendto(message.encode(), serverAddressPort)
         #time.sleep(2)
 
