@@ -1,0 +1,16 @@
+syntax = "proto3" ;
+
+service Fileservice {
+    rpc ReplicateFile (FileData) returns (ack);
+}
+
+message FileData {
+    string initialReplicaServer = 1;
+    bytes bytearray = 2;
+    string vClock = 3;
+}
+
+message ack {
+    bool success =1;
+    string message = 2;
+}
