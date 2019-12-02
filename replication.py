@@ -13,6 +13,7 @@ import grpc
 import fileService_pb2
 import fileService_pb2_grpc
 import cache
+from queue import *
 class Replicate:
     # hold infected nodes
     # initialization method.
@@ -26,6 +27,7 @@ class Replicate:
     #UDPServerSocket.bind((localIP, localPort))
 
     def __init__(self):
+        self.Failed_Node_Map = {}
         #self.hostname="169.105.246.3"
         #self.node = socket.socket(type=socket.SOCK_DGRAM)
         # set the address, i.e(hostname and port) of the socket
@@ -102,7 +104,7 @@ class Replicate:
             print("initialReplicaServer", initialReplicaServer)
             message = data.get("message")
             isFirstServer = data.get("isFirstServer")
-            if message=="true":
+            if message == "true":
                 print("Trying to replicate at", address[0])
                 self.replicateContent(initialReplicaServer, address[0])
             elif message.isnumeric() and isFirstServer == True:
@@ -173,6 +175,57 @@ class Replicate:
         else:
             cache.set(message.filename, message)
 
+
+    # broadcast updates and failed retries
+    def broadcast_update(self,message):
+        localFileData = cache.getFileVclock("file1")
+        localvClock = localFileData.vClock
+        for address in localvClock:
+            if address.address != self.localIP:
+                hostname = str.encode(address.address)
+                print("ping -c 1 " + hostname.decode("utf-8"))
+                response = os.system("ping -c 1 " + hostname.decode("utf-8"))
+                # and then check the response
+                if response == 0:
+                    print(hostname, 'up')
+                    # send update
+                    self.replicateContent()
+                    # self.transmit_message(message, intial_Replicate_Server, hostname.decode("utf-8"), False)
+                    break
+                else:
+                    # put in failed map
+                    print(hostname, 'down')
+                    if hostname not in self.Failed_Node_Map:
+                        self.Failed_Node_Map[hostname] = Queue()
+                    self.Failed_Node_Map[hostname].put(message)
+
+
+    def retries(self):
+        print("retrying")
+        while True:
+            for ips in self.Failed_Node_Map:
+                hostname = str.encode(ips)
+                print("ping -c 1 " + hostname.decode("utf-8"))
+                response = os.system("ping -c 1 " + hostname.decode("utf-8"))
+                # and then check the response
+                if response == 0:
+                    print(hostname, 'up')
+                    q = self.Failed_Node_Map[ips]
+                    while not q.empty():
+                        try:
+                            item = q.get()
+                            self.replicateContent()
+                        except Exception as e:
+                            q.put(item)
+                    # send update
+                    self.Failed_Node_Map.pop(ips)
+                    # self.transmit_message(message, intial_Replicate_Server, hostname.decode("utf-8"), False)
+                    break
+                else:
+                    # put in failed map
+                    print(hostname, 'down')
+
+
     def transmit_message(self, message, intial_Replicate_Server, hostname, firstServer):
         # loop as long as there are susceptible(connected) ports(nodes) to send to
         #data = message
@@ -191,3 +244,4 @@ class Replicate:
 
     def start_threads(self):
         Thread(target=self.replicateContent).start()
+        Thread(target=self.retries).start()
