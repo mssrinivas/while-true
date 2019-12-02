@@ -9,7 +9,6 @@ import fileService_pb2_grpc
 import fileService_pb2
 from ReplicationService import ReplicationService
 
-
 # create a gRPC server
 server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 

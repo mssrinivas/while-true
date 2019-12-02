@@ -12,7 +12,7 @@ from threading import Thread
 import grpc
 import fileService_pb2
 import fileService_pb2_grpc
-
+import cache
 class Replicate:
     # hold infected nodes
     # initialization method.
@@ -21,9 +21,10 @@ class Replicate:
     localPort = 21000
     bufferSize = 1024
     # Create a datagram socket
-    UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+   # UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
     # Bind to address and ip
-    UDPServerSocket.bind((localIP, localPort))
+    #UDPServerSocket.bind((localIP, localPort))
+
     def __init__(self):
         #self.hostname="169.105.246.3"
         #self.node = socket.socket(type=socket.SOCK_DGRAM)
@@ -40,23 +41,32 @@ class Replicate:
                 if hostname in line:
                     return False
 
-
-    def replicateContent(self, hostname, intial_Replicate_Server):
+    def replicateContent(self):
         # logic to pick up bytes from memory and transmit
         bytes_read_from_memory = str.encode("Srinivas")
+        intial_Replicate_Server = self.localIP
+        hostname = "10.0.0.2"
         serverAddress = "localhost"
-        serverPort = 9000
+        serverPort = 50051
         channel = grpc.insecure_channel(serverAddress + ":" + str(serverPort))
         replicate_stub = fileService_pb2_grpc.FileserviceStub(channel)
-        request = fileService_pb2.FileData(initialReplicaServer = "initialReplicaServer", message = "message",
-                                                                                vClock = "vClock")
+        vClock = {
+            "ip1": {"address": self.localIP, "timestamp": time.time()},
+            "ip2": {"address": hostname, "timestamp": ""},
+            "ip3": {"address": "", "timestamp": ""}
+        }
+
+        #print("vclock from redis", cache.getFileVclock("file1"))
+        request = fileService_pb2.FileData(initialReplicaServer=intial_Replicate_Server, bytearray=bytes_read_from_memory,
+                                           vClock=json.dumps(vClock))
         resp = replicate_stub.ReplicateFile(request)
         print(resp)
         #self.transmit_message(bytes_read_from_memory, intial_Replicate_Server, hostname.decode("utf-8"), False)
 
     def ReplicateFile(self, request, context):
+        self.write_to_mem ( request )
         print("request", request.initialReplicaServer )
-        return resources.fileService_pb2.ack(success=True, message="Data Replicated.")
+        return fileService_pb2.ack(success=True, message="Data Replicated.")
 
 
     def findNeighbors(self, message, intial_Replicate_Server):
@@ -109,11 +119,59 @@ class Replicate:
                     print("inside if")
                 else:
                    self.findNeighbors(message, initialReplicaServer)
-            else:
-                #logic to write to memory
-                print("Write to memory")
+                # Vclock = {ip1:{address, timestamp},ip2:{address, timestamp},ip3:{address, timestamp}}
+                # fileName:{{intialReplicaServer, firstServer, Bytearray, {ip1:{address, timestamp},ip2:{address, timestamp},ip3:{address, timestamp}}}
+                # message : {intialReplicaServer, firstServer, Bytearray, Vclock}
 
 
+
+
+    def write_to_mem(self, message):
+        # logic to write to memory
+        print("Write to memory")
+        localMax = 0
+        syncMax = 0
+        a = [1, 2, 3]
+        if ( cache.keyExists( "file1") ):
+            localFileData = cache.getFileVclock("file1")
+            localvClock = localFileData.vClock
+            localtimestamp = ""
+            synctimestamp = ""
+            for i in range(len(a)):
+                ip = ip + "i"
+                if localvClock.ip.timestamp != "" and message.vClock.ip.timestamp != "":
+                    localtimestamp = localvClock.ip.timestamp
+                    synctimestamp = message.vClock.ip.timestamp
+                elif localvClock.ip.timestamp == "" and message.vClock.ip.timestamp != "":
+                    localtimestamp = "0"
+                    synctimestamp = message.vClock.ip.timestamp
+                elif localvClock.ip.timestamp != "" and message.vClock.ip.timestamp == "":
+                    localtimestamp = localvClock.ip.timestamp
+                    synctimestamp = "0"
+                elif localvClock.ip.timestamp == "" and message.vClock.ip.timestamp == "":
+                    continue
+                if float(localtimestamp) > float(synctimestamp):
+                    localMax = max(localMax, float(localtimestamp))
+                elif float(localtimestamp) < float(synctimestamp):
+                    syncMax = max(syncMax, float(synctimestamp))
+
+            updatedVclock = {}
+            for address in localFileData.vClock:
+                updatedVclock.address.timestamp = max(address.timestamp, message.vClock.address.timestamp)
+                updatedVclock.address.address = address
+
+            if localMax != 0 and syncMax != 0:
+                # conflict
+                if localMax < syncMax:
+                    message.vClock = updatedVclock
+                    cache.set(message.filename, message)
+                elif localMax > syncMax:
+                    localFileData.vClock = updatedVclock
+                    cache.set(message.filename, localFileData)
+            elif syncMax > localMax:
+                cache.set(message.filename, message)
+        else:
+            cache.set(message.filename, message)
 
     def transmit_message(self, message, intial_Replicate_Server, hostname, firstServer):
         # loop as long as there are susceptible(connected) ports(nodes) to send to

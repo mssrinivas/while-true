@@ -8,5 +8,5 @@ import fileService_pb2
 class ReplicationService(fileService_pb2_grpc.FileserviceServicer):
 
     def ReplicateFile(self, request, context):
-        print("request", request.initialReplicaServer)
+        print("request", str( request) )
         return fileService_pb2.ack(success=True, message="Data Replicated.")
