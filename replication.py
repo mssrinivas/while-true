@@ -7,13 +7,12 @@ import os
 import json
 sys.path.append('./proto')
 sys.path.append('./service')
-from concurrent import futures
 from threading import Thread
 import grpc
 import fileService_pb2
 import fileService_pb2_grpc
 import cache
-from queue import *
+from multiprocessing import Queue
 class Replicate:
     # hold infected nodes
     # initialization method.
@@ -22,9 +21,9 @@ class Replicate:
     localPort = 21000
     bufferSize = 1024
     # Create a datagram socket
-   # UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
     # Bind to address and ip
-    #UDPServerSocket.bind((localIP, localPort))
+    UDPServerSocket.bind((localIP, localPort))
 
     def __init__(self):
         self.Failed_Node_Map = {}
@@ -43,20 +42,30 @@ class Replicate:
                 if hostname in line:
                     return False
 
-    def replicateContent(self):
+    def replicateContent(self, message, initialReplicaServer, address):
         # logic to pick up bytes from memory and transmit
         bytes_read_from_memory = str.encode("Srinivas")
         intial_Replicate_Server = self.localIP
-        hostname = "10.0.0.2"
+        hostname = address
         serverAddress = "localhost"
         serverPort = 50051
         channel = grpc.insecure_channel(serverAddress + ":" + str(serverPort))
         replicate_stub = fileService_pb2_grpc.FileserviceStub(channel)
-        vClock = {
-            "ip1": {"address": self.localIP, "timestamp": time.time()},
-            "ip2": {"address": hostname, "timestamp": ""},
-            "ip3": {"address": "", "timestamp": ""}
-        }
+        if message.countOfReplica == 1:
+            vClock = cache.getFileVclock("file1")
+            vClock.ip2.address = hostname
+            # vClock = {
+            # "ip1": {"address": self.localIP, "timestamp": time.time()},
+            # "ip2": {"address": hostname, "timestamp": ""},
+            # "ip3": {"address": "", "timestamp": ""}
+            # }
+        else:
+            vClock = cache.getFileVclock("file1")
+            vClock.ip3.address = hostname
+            file = "file1"
+            message = json.dump({"vClock":vClock, "filename":file},)
+            self.transmit_message(message, intial_Replicate_Server, vClock.ip2.address.decode("utf-8"), False, 0, "sync", "file1")
+            self.transmit_message(message, intial_Replicate_Server, vClock.ip3.address.decode("utf-8"), False, 0, "sync", "file1")
 
         #print("vclock from redis", cache.getFileVclock("file1"))
         request = fileService_pb2.FileData(initialReplicaServer=intial_Replicate_Server, bytearray=bytes_read_from_memory,
@@ -87,7 +96,7 @@ class Replicate:
             # and then check the response
             if response == 0:
                 print(hostname, 'up')
-                self.transmit_message(message, intial_Replicate_Server, hostname.decode("utf-8"), False)
+                self.transmit_message(message, intial_Replicate_Server, hostname.decode("utf-8"), False, 2, "write", "file1")
                 break
             else:
                 print(hostname, 'down')
@@ -103,32 +112,53 @@ class Replicate:
             initialReplicaServer = data.get("initialReplicaServer")
             print("initialReplicaServer", initialReplicaServer)
             message = data.get("message")
+            type = data.get("type")
             isFirstServer = data.get("isFirstServer")
-            if message == "true":
+            if type == "sync":
+                self.sync_vector_clocks(message)
+            elif message == "true":
                 print("Trying to replicate at", address[0])
-                self.replicateContent(initialReplicaServer, address[0])
+                self.replicateContent(message, initialReplicaServer, address[0])
             elif message.isnumeric() and isFirstServer == True:
                 print("First Server", initialReplicaServer)
                 self.findNeighbors(message, initialReplicaServer)
-            elif message.isnumeric():
+            elif message.isnumeric() and message.countOfReplica > 0:
             # Logic to check for write
                 canAccomodate = self.checkforCapacity(message, self.localIP)
                 if canAccomodate:
                     replicate_true = str.encode("true")
                     print(address[0])
                     string = str(address[0])
-                    self.transmit_message(replicate_true, initialReplicaServer, string.decode("utf-8"), False)
+                    self.transmit_message(replicate_true, initialReplicaServer, string.decode("utf-8"), False, message.countOfReplica-1,"write", "file1")
                     print("inside if")
                 else:
                    self.findNeighbors(message, initialReplicaServer)
                 # Vclock = {ip1:{address, timestamp},ip2:{address, timestamp},ip3:{address, timestamp}}
                 # fileName:{{intialReplicaServer, firstServer, Bytearray, {ip1:{address, timestamp},ip2:{address, timestamp},ip3:{address, timestamp}}}
                 # message : {intialReplicaServer, firstServer, Bytearray, Vclock}
+            elif type=="update":
+                self.write_to_mem(message)
 
 
+#{message, VClock.!self.Ip, update}
+#{message, VClock.!self.IP. update}
+
+    def sync_vector_clocks(self, message):
+        localmessage = cache.getFileVclock(message.filename)
+        localmessage.vClock.ip2.address = message.vClock.ip2.address
+        localmessage.vClockip3.address = message.vClock.ip3.address
+        cache.set(message.filename, localmessage)
 
 
     def write_to_mem(self, message):
+        if message.countOfReplica == 1:
+            message.vClock.ip2.address = self.localIP
+        else:
+            message.vClock.ip3.address = self.localIP
+        cache.set(message.filename, message)
+
+
+    def update_to_mem(self, message):
         # logic to write to memory
         print("Write to memory")
         localMax = 0
@@ -172,8 +202,6 @@ class Replicate:
                     cache.set(message.filename, localFileData)
             elif syncMax > localMax:
                 cache.set(message.filename, message)
-        else:
-            cache.set(message.filename, message)
 
 
     # broadcast updates and failed retries
@@ -189,7 +217,7 @@ class Replicate:
                 if response == 0:
                     print(hostname, 'up')
                     # send update
-                    self.replicateContent()
+                    #self.replicateContent()
                     # self.transmit_message(message, intial_Replicate_Server, hostname.decode("utf-8"), False)
                     break
                 else:
@@ -214,7 +242,7 @@ class Replicate:
                     while not q.empty():
                         try:
                             item = q.get()
-                            self.replicateContent()
+                            #self.replicateContent()
                         except Exception as e:
                             q.put(item)
                     # send update
@@ -226,22 +254,23 @@ class Replicate:
                     print(hostname, 'down')
 
 
-    def transmit_message(self, message, intial_Replicate_Server, hostname, firstServer):
+    def transmit_message(self, message, intial_Replicate_Server, hostname, firstServer, countOfReplica, type, filename):
         # loop as long as there are susceptible(connected) ports(nodes) to send to
         #data = message
         '''bytesToSend = str.encode(data)
         print(bytesToSend)'''
         # logic to chose neighbors and check if neighbor is alive and not in list of already transmitted
-        serverAddressPort = ("169.105.246.3", 21000)
+        serverAddressPort = (hostname, 21000)
         bufferSize = 1024
         # Create a UDP socket at client side
         # Send to server using created UDP socket
-        message = json.dumps({"isFirstServer": firstServer, "initialReplicaServer": intial_Replicate_Server, "message": message})
+        message = json.dumps({"isFirstServer": firstServer, "initialReplicaServer": intial_Replicate_Server, "message": message, "countofReplica": countOfReplica, "type":type, "filename":filename})
         print("Sending message to",message)
         self.UDPServerSocket.sendto(message.encode(), serverAddressPort)
         #time.sleep(2)
 
 
     def start_threads(self):
-        Thread(target=self.replicateContent).start()
-        Thread(target=self.retries).start()
+        # Thread(target=self.replicateContent()).start()
+        #Thread(target=self.retries).start()
+        Thread(target=self.receive_message).start()
