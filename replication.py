@@ -15,9 +15,9 @@ import cache
 from multiprocessing import Queue
 class Replicate:
     # hold infected nodes
-    # initialization method.
+    # initialization method.k8
     # pass the port of the node and the ports of the nodes connected to it
-    localIP = "169.105.246.4"
+    localIP = "169.105.246.3"
     localPort = 21000
     bufferSize = 1024
     # Create a datagram socket
@@ -40,7 +40,7 @@ class Replicate:
             for line in file:
                 print(line)
                 if hostname in line:
-                    return False
+                    return True
 
     def replicateContent(self, message, initialReplicaServer, address):
         # logic to pick up bytes from memory and transmit
@@ -91,16 +91,19 @@ class Replicate:
         while len(ListofNeigbors) > 0:
             forwardIP = random.choice(ListofNeigbors)
             hostname = str.encode(forwardIP)
-            print("ping -c 1 " +hostname.decode("utf-8") )
-            response = os.system("ping -c 1 " +hostname.decode("utf-8"))
-            # and then check the response
-            if response == 0:
-                print(hostname, 'up')
-                self.transmit_message(message, intial_Replicate_Server, hostname.decode("utf-8"), False, 2, "write", "file1")
-                break
+            if hostname != intial_Replicate_Server:
+                print("ping -c 1 " +hostname.decode("utf-8") )
+                response = os.system("ping -c 1 " +hostname.decode("utf-8"))
+                # and then check the response
+                if response == 0:
+                    print(hostname, 'up')
+                    self.transmit_message(message, intial_Replicate_Server, hostname.decode("utf-8"), False, 2, "write", "file1")
+                    break
+                else:
+                    print(hostname, 'down')
+                    ListofNeigbors.remove(forwardIP)
             else:
-                print(hostname, 'down')
-                ListofNeigbors.remove(forwardIP)
+                continue
 
 
     def receive_message(self):
@@ -123,16 +126,17 @@ class Replicate:
                 print("First Server", initialReplicaServer)
                 self.findNeighbors(message, initialReplicaServer)
             elif message.isnumeric() and message.countOfReplica > 0:
-            # Logic to check for write
-                canAccomodate = self.checkforCapacity(message, self.localIP)
-                if canAccomodate:
-                    replicate_true = str.encode("true")
-                    print(address[0])
-                    string = str(address[0])
-                    self.transmit_message(replicate_true, initialReplicaServer, string.decode("utf-8"), False, message.countOfReplica-1,"write", "file1")
-                    print("inside if")
-                else:
-                   self.findNeighbors(message, initialReplicaServer)
+            # # Logic to check for write
+            #     canAccomodate = self.checkforCapacity(message, self.localIP)
+            #     if canAccomodate:
+            #         replicate_true = str.encode("true")
+            #         print(address[0])
+            #         string = str(address[0])
+            #         self.transmit_message(replicate_true, initialReplicaServer, string.decode("utf-8"), False, message.countOfReplica-1,"write", "file1")
+            #         print("inside if")
+            #     else:
+                
+                #self.findNeighbors(message, initialReplicaServer)
                 # Vclock = {ip1:{address, timestamp},ip2:{address, timestamp},ip3:{address, timestamp}}
                 # fileName:{{intialReplicaServer, firstServer, Bytearray, {ip1:{address, timestamp},ip2:{address, timestamp},ip3:{address, timestamp}}}
                 # message : {intialReplicaServer, firstServer, Bytearray, Vclock}
