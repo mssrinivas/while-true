@@ -12,17 +12,17 @@ from threading import Lock, Thread
 
 
 class GossipProtocol:
-    capacity_of_neighbors_fixed = [1234, 3456, 7899, 7543]  # maintains the list of nodes
+    capacity_of_neighbors_fixed = [1200, 3100, 7000, 5558]  # maintains the list of nodes
     totalNodes = [1234, 3456, 7899, 7543]
     sys.setrecursionlimit(200000)
     localMinimumCapacity = -sys.maxsize -1
-    localIP = "169.105.246.3"
+    Ipaddress = "169.105.246.9"
     localPort = 21000
     bufferSize = 1024
     # Create a datagram socket
     UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
     # Bind to address and ip
-    UDPServerSocket.bind((localIP, localPort))
+    UDPServerSocket.bind((Ipaddress, localPort))
 
     def __init__(self):
         self.start_threads()
@@ -98,7 +98,7 @@ class GossipProtocol:
                 if response == 0:
                     print(hostname, 'up')
                     # Call to check capacity
-                    capacity_of_neighbors.update[hostname] = self.capacity_of_neighbors_fixed[counter]
+                    capacity_of_neighbors.update[hostname] = self.capacity_of_neighbors_fixed.get(counter)
                     counter +=1
                     list_of_neigbors.remove(forwardIP)
                     break
@@ -118,10 +118,13 @@ class GossipProtocol:
         while True:
             messageReceived, address = self.UDPServerSocket.recvfrom(1024)
             data = json.loads(messageReceived.decode())
-            if data.IPaddress == self.IPaddress and data.gossip == False:
+            print(data)
+            IPaddress = data.get('IPaddress')
+            gossip_flag =  data.get('gossip')
+            if str(IPaddress) == "169.105.246.9" and gossip_flag == False:
                 # make data.gossip == true
-                list_of_neighbors = self.fetch_all_neighbors(data.IPaddress)
-                minimum_capacity_neighbor = self.get_minimum_capacity_neighbors()
+                list_of_neighbors = self.fetch_all_neighbors()
+                minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(IPaddress)
                 max_size = sys.maxsize
                 minimum_capacity = min(minimum_capacity_neighbor[1], max_size)
                 self.counter = 1
@@ -129,11 +132,12 @@ class GossipProtocol:
                 for ip in range(len(list_of_neighbors)):
                     self.transmit_message(list_of_neighbors[ip], updated_message)
                 time.sleep(3)
-                self.replicateData()
-            elif data.gossip == True and self.checkForConvergence(data) == False:
+                #self.replicateData()
+            elif gossip_flag == True and self.checkForConvergence(data) == False:
                 list_of_neighbors = self.fetch_all_neighbors()
-                minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(data.IPaddress)
-                received_minimum_capacity = list(data.Dictionary.keys())[0]
+                minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(IPaddress)
+                dict = data.get("Dictionary")
+                received_minimum_capacity = list(dict.keys())[0]
                 minimum_capacity = min(minimum_capacity_neighbor[1], received_minimum_capacity)
                 updated_message = self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
