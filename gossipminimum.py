@@ -116,7 +116,7 @@ class GossipProtocol:
 
     def receive_message(self):
         while True:
-            messageReceived, address = self.node.recvfrom(1024)
+            messageReceived, address = self.UDPServerSocket.recvfrom(1024)
             data = json.loads(messageReceived.decode())
             if data.IPaddress == self.IPaddress and data.gossip == False:
                 # make data.gossip == true
