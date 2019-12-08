@@ -174,39 +174,46 @@ class GossipProtocol:
         self.UDPServerSocket.sendto(message.encode(), serverAddressPort)
 
     def replicateData()
-        
         # if(self.node == initialReplciateServer)
         #   check node which has minimum memory utilization
         #   call shortestPath function(self_coordinates,set_minimum_coordinates) 
-        #             returns  the path list
+        #             returns the path list
         #   initiate a counter
         #   grpc_call(payload(file,counter,(path_list)))
         # else
         #    # unwrap the payload.counter
         #    # if(payload.counter != len(payload.pathlist)-1)
                  # payload.counter+1
-                 # establish GRPC channel between nodes in the pathlist -> grpc_call(payload(file,counter,(path_list))) 
-                 # send data through the channel  
-            # else 
+                 # establish GRPC channel between nodes in the pathlist -> grpc_call(payload(file,counter,(path_list)))
+                 # send data through the channel
+            # else
                 # replicate the file(write)
                 # send acknwoledgment back using same pathlist ()
 
+    def getneighbordata(next_node):
+        with open('metaData.json', 'r') as f:
+            metadata_dict = json.load(f)
+        nodes = metadata_dict['nodes']
+        return (nodes[next_node])
+
     def ReplicateFile(self, request, context):
         print("request",  request.path)
-        next_node = request.path[request.currentpos]
-        if (next_node == self.coordinates):
+        next_node = request.shortest_path[request.currentpos]
+        if ( request.currentpos == len( request.path ) - 1 ) ):
             cache.set(request, request)
             return fileService_pb2.ack(success=True, message="Data Replicated.")
         else:
-            server_addr = self.getneighbordata(next_node)
+            forward_server_addr = self.getneighbordata(next_node)
+            forward_port = 50051
             forward_channel = grpc.insecure_channel(
-                server_addr + ":" + str(serverPort))
+                forward_server_addr + ":" + str(forward_port))
             forward_stub = fileService_pb2_grpc.FileserviceStub(
                 forward_channel)
             request.currentpos += 1
             forward_resp = forward_stub.ReplicateFile(request)
             print("forward_resp", forward_resp)
             return fileService_pb2.ack(success=True, message="Data Forwarded.")
+
     def bfs(self, grid, start, goal, rows, columns):
         queue = collections.deque([[start]])
         seen = set([start])

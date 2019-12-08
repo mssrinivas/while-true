@@ -8,7 +8,7 @@ message FileData {
     string initialReplicaServer = 1;
     bytes bytearray = 2;
     string vClock = 3;
-    repeated string path = 4;
+    repeated string shortest_path = 4;
     int32 currentpos = 5;
 }
 
