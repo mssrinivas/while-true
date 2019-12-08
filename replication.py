@@ -127,7 +127,7 @@ class Replicate:
                 self.findNeighbors(message, initialReplicaServer)
             elif message.isnumeric() and message.countOfReplica > 0:
             # # Logic to check for write
-            #     canAccomodate = self.checkforCapacity(message, self.localIP)
+                 canAccomodate = self.checkforCapacity(message, self.localIP)
             #     if canAccomodate:
             #         replicate_true = str.encode("true")
             #         print(address[0])
