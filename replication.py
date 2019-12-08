@@ -21,7 +21,7 @@ class Replicate:
     localPort = 21000
     bufferSize = 1024
     # Create a datagram socket
-    UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
     # Bind to address and ip
     UDPServerSocket.bind((localIP, localPort))
 
@@ -126,6 +126,7 @@ class Replicate:
                 print("First Server", initialReplicaServer)
                 self.findNeighbors(message, initialReplicaServer)
             elif message.isnumeric() and message.countOfReplica > 0:
+                print("abcd")
             # # Logic to check for write
                  canAccomodate = self.checkforCapacity(message, self.localIP)
             #     if canAccomodate:
@@ -152,7 +153,6 @@ class Replicate:
         localmessage.vClock.ip2.address = message.vClock.ip2.address
         localmessage.vClockip3.address = message.vClock.ip3.address
         cache.set(message.filename, localmessage)
-
 
     def write_to_mem(self, message):
         if message.countOfReplica == 1:
@@ -230,7 +230,6 @@ class Replicate:
                     if hostname not in self.Failed_Node_Map:
                         self.Failed_Node_Map[hostname] = Queue()
                     self.Failed_Node_Map[hostname].put(message)
-
 
     def retries(self):
         print("retrying")

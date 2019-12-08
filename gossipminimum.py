@@ -13,6 +13,10 @@ import sys
 sys.path.append('./proto')
 sys.path.append('./service')
 from ReplicationService import ReplicationServices
+import timeit
+import math
+from threading import Lock, Thread
+import collections
 
 
 class GossipProtocol:
@@ -143,6 +147,11 @@ class GossipProtocol:
                         list_of_neighbors[ip], updated_message)
                 time.sleep(3)
                 # self.replicateData()
+                bestnode_coordinates = self.get_best_node()
+                path =  self.bfs(self.grid,self.coordinates, bestnode_coordinates)
+                get_next_ip = self.get_next_ipaddress(path,self.coordinates)
+                # make a grpc call to send data to nodes ( DATA to be written to memory, path)
+                #self.replicateData()
             elif gossip_flag == True and self.checkForConvergence(data) == False:
                 list_of_neighbors = self.fetch_all_neighbors()
                 minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(
@@ -198,6 +207,18 @@ class GossipProtocol:
             forward_resp = forward_stub.ReplicateFile(request)
             print("forward_resp", forward_resp)
             return fileService_pb2.ack(success=True, message="Data Forwarded.")
+    def bfs(self, grid, start, goal, rows, columns):
+        queue = collections.deque([[start]])
+        seen = set([start])
+        while queue:
+            path = queue.popleft()
+            y, x = path[-1]
+            if grid[y][x] == goal:
+                return path
+            for x2, y2 in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if 0 <= x2 < rows and 0 <= y2 < columns and grid[y2][x2] != 0 and (x2, y2) not in seen:
+                    queue.append(path + [(x2, y2)])
+                    seen.add((x2, y2))
 
     def start_threads(self):
         # Thread(target=self.replicateContent()).start()
