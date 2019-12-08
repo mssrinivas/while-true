@@ -48,7 +48,6 @@ class GossipProtocol:
         message_to_send = "message"
 
     def checkforConvergence(self, data):
-#        data = json.loads(data.decode())
         print("data = ", data)
         message_received = data.get("Dictionary")
         blacklisted_nodes =data.get("BlackListedNodes")
@@ -91,7 +90,7 @@ class GossipProtocol:
         print("SICT = ", dictionary)
         mini = min(dictionary, key=lambda k: dictionary[k])
         print("MINIMUM = ",[mini, dictionary[mini]])
-        return [mini, dictionary[mini]]
+        return [mini.strip('\n'), dictionary[mini]]
 
     def fetch_all_neighbors(self):
         list_of_neigbors = []
@@ -107,20 +106,21 @@ class GossipProtocol:
     def get_minimum_capacity_neighbors(self, initalReplicaServer):
         list_of_neigbors = []
         capacity_of_neighbors = {}
+        print("INITIALREPLICA", initalReplicaServer)
         filepath = 'data/neighbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
-                print(line)
+                line = line.strip('\n')
                 list_of_neigbors.append(line)
-
+        counter = 0
         while len(list_of_neigbors) > 0:
-            counter = 0
+            print("NEIGHBORS = ", list_of_neigbors)
             forwardIP = random.choice(list_of_neigbors)
             hostname = str.encode(forwardIP)
             hostname2 = forwardIP
-            print(" STR HOSTNAME = ", hostname)
-            if hostname != initalReplicaServer:
-                print("ping -c 1 " + hostname.decode("utf-8"))
+            print("HOSTNAME = ", hostname2, "INT REPL =", initalReplicaServer)
+            if hostname2 != initalReplicaServer:
+                print("ping -c 3 " + hostname.decode("utf-8"))
                 response = os.system("ping -c 1 " + hostname.decode("utf-8"))
                 # and then check the response
                 if response == 0:
@@ -133,11 +133,11 @@ class GossipProtocol:
                     capacity_of_neighbors[hostname2] = self.getneighborcapacity(coordinates)
                     counter += 1
                     list_of_neigbors.remove(forwardIP)
-                    break
                 else:
                     print(hostname, 'down')
                     list_of_neigbors.remove(forwardIP)
             else:
+                list_of_neigbors.remove(forwardIP)
                 continue
 
         if len(capacity_of_neighbors) == 0:
@@ -153,8 +153,8 @@ class GossipProtocol:
             data = json.loads(messageReceived.decode())
             IPaddress = data.get("IPaddress")
             gossip_flag = data.get("gossip")
-            print("xyz", IPaddress ,gossip_flag)
             Convergence_Value = self.checkforConvergence(data)
+            print("LATEST VALUES", IPaddress, gossip_flag, Convergence_Value)
             if str(IPaddress) == "169.105.246.9" and gossip_flag == False:
                 # make data.gossip == true
                 list_of_neighbors = self.fetch_all_neighbors()
@@ -164,8 +164,7 @@ class GossipProtocol:
                 self.counter = 1
                 IPaddress, gossip, Dictionary, BlackListedNodes = self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
-                    print("SENDING TO")
-                    self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, gossip, Dictionary, BlackListedNodes)
+                    self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, True, Dictionary, BlackListedNodes)
                 time.sleep(6)
                 # self.replicateData()
                # bestnode_coordinates = self.get_best_node()
@@ -179,11 +178,13 @@ class GossipProtocol:
                 list_of_neighbors = self.fetch_all_neighbors()
                 minimum_capacity_neighbor = self.get_minimum_capacity_neighbors( IPaddress)
                 dict = data.get("Dictionary")
-                received_minimum_capacity = list(dict.keys())[0]
+                received_minimum_capacity = dict[list(dict.keys())[0]]
+                print("minimum_capacity_neighbor",minimum_capacity_neighbor[1])
+                print("received_minimum_capacity", received_minimum_capacity)
                 minimum_capacity = min(minimum_capacity_neighbor[1], received_minimum_capacity)
                 IPaddress, gossip, Dictionary, BlackListedNodes= self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
-                    self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, gossip, Dictionary, BlackListedNodes)
+                    self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, True, Dictionary, BlackListedNodes)
 
     def transmit_message(self, hostname, IPaddress, gossip, Dictionary, BlackListedNodes):
         serverAddressPort = (hostname, 21000)
@@ -214,7 +215,6 @@ class GossipProtocol:
         with open('data/metadata.json', 'r') as f:
             metadata_dict = json.load(f)
         nodes = metadata_dict['nodes']
-        print("all nodes", nodes[next_node])
         return nodes[next_node]
 
     def getneighborcapacity(self, next_node):
