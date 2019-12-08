@@ -82,7 +82,7 @@ class Replicate:
 
     def findNeighbors(self, message, intial_Replicate_Server):
         ListofNeigbors = []
-        filepath = '/Users/local/Documents/While-True/while-true/data/neighbors.txt'
+        filepath = 'data/neighbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
