@@ -82,7 +82,7 @@ class Replicate:
 
     def findNeighbors(self, message, intial_Replicate_Server):
         ListofNeigbors = []
-        filepath = '/tmp/neighbors.txt'
+        filepath = '/Users/local/Documents/While-True/while-true/data/neighbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
@@ -128,7 +128,7 @@ class Replicate:
             elif message.isnumeric() and message.countOfReplica > 0:
                 print("abcd")
             # # Logic to check for write
-                 canAccomodate = self.checkforCapacity(message, self.localIP)
+            #   canAccomodate = self.checkforCapacity(message, self.localIP)
             #     if canAccomodate:
             #         replicate_true = str.encode("true")
             #         print(address[0])
@@ -141,8 +141,8 @@ class Replicate:
                 # Vclock = {ip1:{address, timestamp},ip2:{address, timestamp},ip3:{address, timestamp}}
                 # fileName:{{intialReplicaServer, firstServer, Bytearray, {ip1:{address, timestamp},ip2:{address, timestamp},ip3:{address, timestamp}}}
                 # message : {intialReplicaServer, firstServer, Bytearray, Vclock}
-            elif type=="update":
-                self.write_to_mem(message)
+            #elif type=="update":
+            #self.write_to_mem(message)
 
 
 #{message, VClock.!self.Ip, update}

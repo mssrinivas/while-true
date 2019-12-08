@@ -13,10 +13,12 @@ import sys
 
 import grpc
 
-from proto import fileService_pb2, fileService_pb2_grpc
-
 sys.path.append('./proto')
 sys.path.append('./service')
+
+from proto import fileService_pb2, fileService_pb2_grpc
+
+
 import timeit
 import math
 import cache
@@ -84,7 +86,7 @@ class GossipProtocol:
 
     def fetch_all_neighbors(self):
         list_of_neigbors = []
-        filepath = '/tmp/neighbors.txt'
+        filepath = '/Users/local/Documents/While-True/while-true/data/neighbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
@@ -95,7 +97,7 @@ class GossipProtocol:
     def get_minimum_capacity_neighbors(self, initalReplicaServer):
         list_of_neigbors = []
         capacity_of_neighbors = {}
-        filepath = '/tmp/neighbors.txt'
+        filepath = '/Users/local/Documents/While-True/while-true/data/neighbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
@@ -152,9 +154,10 @@ class GossipProtocol:
                         list_of_neighbors[ip], updated_message)
                 time.sleep(3)
                 # self.replicateData()
-                bestnode_coordinates = self.get_best_node()
-                path =  self.bfs(self.grid,self.coordinates, bestnode_coordinates)
-                get_next_ip = self.get_next_ipaddress(path,self.coordinates)
+               # bestnode_coordinates = self.get_best_node()
+                #path =  self.bfs(self.grid,self.coordinates, bestnode_coordinates)
+                #print("PATH to next replica" , path)
+                #get_next_ip = self.get_next_ipaddress(path,self.coordinates)
                 # make a grpc call to send data to nodes ( DATA to be written to memory, path)
                 #self.replicateData()
             elif gossip_flag == True and self.checkForConvergence(data) == False:

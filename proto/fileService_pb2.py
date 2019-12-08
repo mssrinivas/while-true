@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x11\x66ileService.proto\"K\n\x08\x46ileData\x12\x1c\n\x14initialReplicaServer\x18\x01 \x01(\t\x12\x11\n\tbytearray\x18\x02 \x01(\x0c\x12\x0e\n\x06vClock\x18\x03 \x01(\t\"\'\n\x03\x61\x63k\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2/\n\x0b\x46ileservice\x12 \n\rReplicateFile\x12\t.FileData\x1a\x04.ackb\x06proto3')
+  serialized_pb=_b('\n\x11\x66ileService.proto\"v\n\x08\x46ileData\x12\x1c\n\x14initialReplicaServer\x18\x01 \x01(\t\x12\x11\n\tbytearray\x18\x02 \x01(\x0c\x12\x0e\n\x06vClock\x18\x03 \x01(\t\x12\x15\n\rshortest_path\x18\x04 \x03(\t\x12\x12\n\ncurrentpos\x18\x05 \x01(\x05\"\'\n\x03\x61\x63k\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2/\n\x0b\x46ileservice\x12 \n\rReplicateFile\x12\t.FileData\x1a\x04.ackb\x06proto3')
 )
 
 
@@ -54,6 +54,20 @@ _FILEDATA = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='shortest_path', full_name='FileData.shortest_path', index=3,
+      number=4, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='currentpos', full_name='FileData.currentpos', index=4,
+      number=5, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -67,7 +81,7 @@ _FILEDATA = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=21,
-  serialized_end=96,
+  serialized_end=139,
 )
 
 
@@ -104,8 +118,8 @@ _ACK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=98,
-  serialized_end=137,
+  serialized_start=141,
+  serialized_end=180,
 )
 
 DESCRIPTOR.message_types_by_name['FileData'] = _FILEDATA
@@ -134,8 +148,8 @@ _FILESERVICE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=139,
-  serialized_end=186,
+  serialized_start=182,
+  serialized_end=229,
   methods=[
   _descriptor.MethodDescriptor(
     name='ReplicateFile',
