@@ -10,12 +10,9 @@ from threading import Thread
 import time
 from enum import Enum
 import sys
-
-import grpc
-
 sys.path.append('./proto')
 sys.path.append('./service')
-
+import grpc
 from proto import fileService_pb2, fileService_pb2_grpc
 
 
@@ -86,7 +83,7 @@ class GossipProtocol:
 
     def fetch_all_neighbors(self):
         list_of_neigbors = []
-        filepath = '/Users/local/Documents/While-True/while-true/data/neighbors.txt'
+        filepath = './data/neigbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
@@ -97,7 +94,7 @@ class GossipProtocol:
     def get_minimum_capacity_neighbors(self, initalReplicaServer):
         list_of_neigbors = []
         capacity_of_neighbors = {}
-        filepath = '/Users/local/Documents/While-True/while-true/data/neighbors.txt'
+        filepath = './data/neigbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
@@ -114,8 +111,8 @@ class GossipProtocol:
                 if response == 0:
                     print(hostname, 'up')
                     # Call to check capacity
-                    capacity_of_neighbors.update[hostname] = self.capacity_of_neighbors_fixed.get(
-                        counter)
+                    
+                    capacity_of_neighbors.update[hostname] = self.getneighbordata()
                     counter += 1
                     list_of_neigbors.remove(forwardIP)
                     break
@@ -199,7 +196,7 @@ class GossipProtocol:
                 # send acknwoledgment back using same pathlist ()
 
     def getneighbordata(next_node):
-        with open('metaData.json', 'r') as f:
+        with open('/Users/mathewsojan/SoftwareEngineering/CMPE275/pythonReplication/data/metaData.txt', 'r') as f:
             metadata_dict = json.load(f)
         nodes = metadata_dict['nodes']
         return (nodes[next_node])
