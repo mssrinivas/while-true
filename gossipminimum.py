@@ -10,11 +10,16 @@ from threading import Thread
 import time
 from enum import Enum
 import sys
+
+import grpc
+
+from proto import fileService_pb2, fileService_pb2_grpc
+
 sys.path.append('./proto')
 sys.path.append('./service')
-from ReplicationService import ReplicationServices
 import timeit
 import math
+import cache
 from threading import Lock, Thread
 import collections
 
@@ -173,7 +178,7 @@ class GossipProtocol:
         print("Sending message to", message)
         self.UDPServerSocket.sendto(message.encode(), serverAddressPort)
 
-    def replicateData()
+    #def replicateData()
         # if(self.node == initialReplciateServer)
         #   check node which has minimum memory utilization
         #   call shortestPath function(self_coordinates,set_minimum_coordinates) 
@@ -199,7 +204,7 @@ class GossipProtocol:
     def ReplicateFile(self, request, context):
         print("request",  request.path)
         next_node = request.shortest_path[request.currentpos]
-        if ( request.currentpos == len( request.path ) - 1 ) ):
+        if request.currentpos == len( request.path ) - 1 :
             cache.set(request, request)
             return fileService_pb2.ack(success=True, message="Data Replicated.")
         else:
