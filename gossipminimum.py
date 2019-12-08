@@ -24,8 +24,7 @@ import collections
 
 
 class GossipProtocol:
-    capacity_of_neighbors_fixed = [1200, 3100,
-                                   7000, 5558]  # maintains the list of nodes
+    capacity_of_neighbors_fixed = [1200, 3100, 7000, 5558]  # maintains the list of nodes
     totalNodes = [1234, 3456, 7899, 7543]
     sys.setrecursionlimit(200000)
     localMinimumCapacity = -sys.maxsize - 1
@@ -111,8 +110,11 @@ class GossipProtocol:
                 if response == 0:
                     print(hostname, 'up')
                     # Call to check capacity
-                    
-                    capacity_of_neighbors.update[hostname] = self.getneighbordata()
+                    if counter == 0:
+                        coordinates = "(0,0)"
+                    else:
+                        coordinates = "(1,0)"
+                    capacity_of_neighbors[hostname] = self.getneighborcapacity(coordinates)
                     counter += 1
                     list_of_neigbors.remove(forwardIP)
                     break
@@ -125,8 +127,7 @@ class GossipProtocol:
         if len(capacity_of_neighbors) == 0:
             return [sys.maxsize, sys.maxsize]
         else:
-            first_minimum = self.find_minimum_in_dictionary(
-                capacity_of_neighbors)
+            first_minimum = self.find_minimum_in_dictionary(capacity_of_neighbors)
             return [first_minimum[0], first_minimum[1]]
 
     def receive_message(self):
@@ -195,11 +196,17 @@ class GossipProtocol:
                 # replicate the file(write)
                 # send acknwoledgment back using same pathlist ()
 
-    def getneighbordata(next_node):
-        with open('/Users/mathewsojan/SoftwareEngineering/CMPE275/pythonReplication/data/metaData.txt', 'r') as f:
+    def getneighbordata(self, next_node):
+        with open('/Users/mathewsojan/SoftwareEngineering/CMPE275/pythonReplication/data/metadata.json', 'r') as f:
             metadata_dict = json.load(f)
         nodes = metadata_dict['nodes']
-        return (nodes[next_node])
+        return nodes[next_node]
+    
+    def getneighborcapacity(self, next_node):
+        with open('/Users/mathewsojan/SoftwareEngineering/CMPE275/pythonReplication/data/metadata.json', 'r') as f:
+            metadata_dict = json.load(f)
+        capacity = metadata_dict['capacity']
+        return capacity[next_node][1]
 
     def ReplicateFile(self, request, context):
         print("request",  request.path)
