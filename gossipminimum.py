@@ -12,6 +12,7 @@ from enum import Enum
 import sys
 
 import grpc
+import ast
 
 sys.path.append('./proto')
 sys.path.append('./service')
@@ -31,12 +32,12 @@ class GossipProtocol:
     totalNodes = [1234, 3456, 7899, 7543]
     sys.setrecursionlimit(200000)
     localMinimumCapacity = -sys.maxsize - 1
-    Ipaddress = "169.105.246.9"
+    Ipaddress = "169.105.246.3"
     localPort = 21000
+    local_message = None
     bufferSize = 1024
     # Create a datagram socket
-    UDPServerSocket = socket.socket(
-        family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
     # Bind to address and ip
     UDPServerSocket.bind((Ipaddress, localPort))
 
@@ -46,7 +47,13 @@ class GossipProtocol:
     def input_message(self):
         message_to_send = "message"
 
-    def checkforConvergence(self, message_received, blacklisted_nodes):
+    def checkforConvergence(self, data):
+#        data = json.loads(data.decode())
+        print("data = ", data)
+        message_received = data.get("Dictionary")
+        blacklisted_nodes =data.get("BlackListedNodes")
+        print("MG-",message_received)
+        print("BL", blacklisted_nodes)
         if self.local_message == message_received:
             self.counter += 1
             if self.counter == 10:
@@ -60,6 +67,7 @@ class GossipProtocol:
                 if len(blacklisted_nodes) >= 0.75 * len(self.totalNodes):
                     return True
         else:
+            self.local_message = message_received
             self.counter = 1
             return False
 
@@ -72,9 +80,10 @@ class GossipProtocol:
         Dict = data.get("Dictionary")
         IPaddress = data.get("IPaddress")
         gossip = data.get("gossip")
-        message = json.dumps({"IPaddress": IPaddress, "gossip": gossip_phase, "Dictionary": Dictionary})
-        print("Message Updated", message)
-        return message
+        BlackListedNodes = data.get("BlackListedNodes")
+        #message = json.dumps({"IPaddress": IPaddress, "gossip": gossip_phase, "Dictionary": Dictionary, "BlackListedNodes":BlackListedNodes})
+        #print("Message Updated", message)
+        return IPaddress, gossip, Dictionary, BlackListedNodes
 
     def find_minimum_in_dictionary(self, dictionary):
         result = []
@@ -90,6 +99,7 @@ class GossipProtocol:
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
+                line = line.strip('\n')
                 list_of_neigbors.append(line)
 
         return list_of_neigbors
@@ -117,9 +127,9 @@ class GossipProtocol:
                     print(hostname, 'up')
                     # Call to check capacity
                     if counter == 0:
-                        coordinates = "(0,1)"
+                        coordinates = "(0,0)"
                     else:
-                        coordinates = "(1,1)"
+                        coordinates = "(1,0)"
                     capacity_of_neighbors[hostname2] = self.getneighborcapacity(coordinates)
                     counter += 1
                     list_of_neigbors.remove(forwardIP)
@@ -141,23 +151,22 @@ class GossipProtocol:
         while True:
             messageReceived, address = self.UDPServerSocket.recvfrom(1024)
             data = json.loads(messageReceived.decode())
-            print(data)
-            IPaddress = data.get('IPaddress')
-            gossip_flag = data.get('gossip')
+            IPaddress = data.get("IPaddress")
+            gossip_flag = data.get("gossip")
+            print("xyz", IPaddress ,gossip_flag)
+            Convergence_Value = self.checkforConvergence(data)
             if str(IPaddress) == "169.105.246.9" and gossip_flag == False:
                 # make data.gossip == true
                 list_of_neighbors = self.fetch_all_neighbors()
-                minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(
-                    IPaddress)
+                minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(IPaddress)
                 max_size = sys.maxsize
                 minimum_capacity = min(minimum_capacity_neighbor[1], max_size)
                 self.counter = 1
-                updated_message = self.updated_message_util(
-                    data, minimum_capacity, minimum_capacity_neighbor[0], True)
+                IPaddress, gossip, Dictionary, BlackListedNodes = self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
-                    self.transmit_message(
-                        list_of_neighbors[ip], updated_message)
-                time.sleep(3)
+                    print("SENDING TO")
+                    self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, gossip, Dictionary, BlackListedNodes)
+                time.sleep(6)
                 # self.replicateData()
                # bestnode_coordinates = self.get_best_node()
                 #path =  self.bfs(self.grid,self.coordinates, bestnode_coordinates)
@@ -165,24 +174,23 @@ class GossipProtocol:
                 #get_next_ip = self.get_next_ipaddress(path,self.coordinates)
                 # make a grpc call to send data to nodes ( DATA to be written to memory, path)
                 #self.replicateData()
-            elif gossip_flag == True and self.checkForConvergence(data) == False:
+            elif gossip_flag == True and Convergence_Value == False:
+                print("IN ELIF")
                 list_of_neighbors = self.fetch_all_neighbors()
-                minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(
-                    IPaddress)
+                minimum_capacity_neighbor = self.get_minimum_capacity_neighbors( IPaddress)
                 dict = data.get("Dictionary")
                 received_minimum_capacity = list(dict.keys())[0]
-                minimum_capacity = min(
-                    minimum_capacity_neighbor[1], received_minimum_capacity)
-                updated_message = self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
+                minimum_capacity = min(minimum_capacity_neighbor[1], received_minimum_capacity)
+                IPaddress, gossip, Dictionary, BlackListedNodes= self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
-                    self.transmit_message(
-                        list_of_neighbors[ip], updated_message)
+                    self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, gossip, Dictionary, BlackListedNodes)
 
-    def transmit_message(self, hostname, message_to_be_gossiped):
+    def transmit_message(self, hostname, IPaddress, gossip, Dictionary, BlackListedNodes):
         serverAddressPort = (hostname, 21000)
         bufferSize = 1024
-        message = json.dumps({"message": message_to_be_gossiped})
-        print("Sending message to", message)
+        #message = json.dumps(message_to_be_gossiped)
+        #print("Sending message to", message)
+        message = json.dumps({"IPaddress": IPaddress, "gossip":gossip, "Dictionary":Dictionary,"BlackListedNodes":BlackListedNodes})
         self.UDPServerSocket.sendto(message.encode(), serverAddressPort)
 
     #def replicateData()
@@ -203,14 +211,14 @@ class GossipProtocol:
                 # send acknwoledgment back using same pathlist ()
 
     def getneighbordata(self, next_node):
-        with open('/home/koul/275_version_check/222/while-true/data/metadata.json', 'r') as f:
+        with open('data/metadata.json', 'r') as f:
             metadata_dict = json.load(f)
         nodes = metadata_dict['nodes']
         print("all nodes", nodes[next_node])
         return nodes[next_node]
 
     def getneighborcapacity(self, next_node):
-        with open('/home/koul/275_version_check/222/while-true/data/metadata.json', 'r') as f:
+        with open('data/metadata.json', 'r') as f:
             metadata_dict = json.load(f)
         nodes = metadata_dict['capacities']
         print("all nodes", nodes[next_node])
