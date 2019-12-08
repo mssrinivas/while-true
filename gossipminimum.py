@@ -31,7 +31,7 @@ class GossipProtocol:
     totalNodes = [1234, 3456, 7899, 7543]
     sys.setrecursionlimit(200000)
     localMinimumCapacity = -sys.maxsize - 1
-    Ipaddress = "169.105.246.3"
+    Ipaddress = "169.105.246.9"
     localPort = 21000
     bufferSize = 1024
     # Create a datagram socket
@@ -67,25 +67,26 @@ class GossipProtocol:
 
     def updated_message_util(self, data, minimum_capacity, leastUsedIP, gossip_phase):
         # update message
+        print("DATA = ", leastUsedIP)
         Dictionary = {leastUsedIP: minimum_capacity}
-        data.Dictionary = Dictionary
-        data.gossip = gossip_phase
-        print("Message Updated", data)
-        return data
+        Dict = data.get("Dictionary")
+        IPaddress = data.get("IPaddress")
+        gossip = data.get("gossip")
+        message = json.dumps({"IPaddress": IPaddress, "gossip": gossip_phase, "Dictionary": Dictionary})
+        print("Message Updated", message)
+        return message
 
     def find_minimum_in_dictionary(self, dictionary):
         result = []
         min_value = None
-        for key, value in dictionary.iteritems():
-            if min_value is None or value < min_value:
-                min_value = value
-                result = []
-            if value == min_value:
-                return [key, value]
+        print("SICT = ", dictionary)
+        mini = min(dictionary, key=lambda k: dictionary[k])
+        print("MINIMUM = ",[mini, dictionary[mini]])
+        return [mini, dictionary[mini]]
 
     def fetch_all_neighbors(self):
         list_of_neigbors = []
-        filepath = '/Users/local/Documents/While-True/while-true/data/neighbors.txt'
+        filepath = 'data/neighbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
@@ -96,7 +97,7 @@ class GossipProtocol:
     def get_minimum_capacity_neighbors(self, initalReplicaServer):
         list_of_neigbors = []
         capacity_of_neighbors = {}
-        filepath = '/Users/local/Documents/While-True/while-true/data/neighbors.txt'
+        filepath = 'data/neighbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
@@ -106,6 +107,8 @@ class GossipProtocol:
             counter = 0
             forwardIP = random.choice(list_of_neigbors)
             hostname = str.encode(forwardIP)
+            hostname2 = forwardIP
+            print(" STR HOSTNAME = ", hostname)
             if hostname != initalReplicaServer:
                 print("ping -c 1 " + hostname.decode("utf-8"))
                 response = os.system("ping -c 1 " + hostname.decode("utf-8"))
@@ -114,10 +117,10 @@ class GossipProtocol:
                     print(hostname, 'up')
                     # Call to check capacity
                     if counter == 0:
-                        coordinates = "(0,0)"
+                        coordinates = "(0,1)"
                     else:
-                        coordinates = "(1,0)"
-                    capacity_of_neighbors.update[hostname] = self.getneighbordata(coordinates)
+                        coordinates = "(1,1)"
+                    capacity_of_neighbors[hostname2] = self.getneighborcapacity(coordinates)
                     counter += 1
                     list_of_neigbors.remove(forwardIP)
                     break
@@ -130,6 +133,7 @@ class GossipProtocol:
         if len(capacity_of_neighbors) == 0:
             return [sys.maxsize, sys.maxsize]
         else:
+            print("C O N",capacity_of_neighbors)
             first_minimum = self.find_minimum_in_dictionary(capacity_of_neighbors)
             return [first_minimum[0], first_minimum[1]]
 
@@ -140,7 +144,7 @@ class GossipProtocol:
             print(data)
             IPaddress = data.get('IPaddress')
             gossip_flag = data.get('gossip')
-            if str(IPaddress) == "169.105.246.3" and gossip_flag == False:
+            if str(IPaddress) == "169.105.246.9" and gossip_flag == False:
                 # make data.gossip == true
                 list_of_neighbors = self.fetch_all_neighbors()
                 minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(
@@ -169,8 +173,7 @@ class GossipProtocol:
                 received_minimum_capacity = list(dict.keys())[0]
                 minimum_capacity = min(
                     minimum_capacity_neighbor[1], received_minimum_capacity)
-                updated_message = self.updated_message_util(
-                    data, minimum_capacity, minimum_capacity_neighbor[0], True)
+                updated_message = self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
                     self.transmit_message(
                         list_of_neighbors[ip], updated_message)
@@ -199,11 +202,19 @@ class GossipProtocol:
                 # replicate the file(write)
                 # send acknwoledgment back using same pathlist ()
 
-    def getneighbordata(next_node):
-        with open('metaData.json', 'r') as f:
+    def getneighbordata(self, next_node):
+        with open('/home/koul/275_version_check/222/while-true/data/metadata.json', 'r') as f:
             metadata_dict = json.load(f)
         nodes = metadata_dict['nodes']
+        print("all nodes", nodes[next_node])
         return nodes[next_node]
+
+    def getneighborcapacity(self, next_node):
+        with open('/home/koul/275_version_check/222/while-true/data/metadata.json', 'r') as f:
+            metadata_dict = json.load(f)
+        nodes = metadata_dict['capacities']
+        print("all nodes", nodes[next_node])
+        return nodes[next_node][1]
 
     def ReplicateFile(self, request, context):
         print("request",  request.path)
