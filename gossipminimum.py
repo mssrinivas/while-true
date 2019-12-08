@@ -32,14 +32,15 @@ class GossipProtocol:
     totalNodes = [1234, 3456, 7899, 7543]
     sys.setrecursionlimit(200000)
     localMinimumCapacity = -sys.maxsize - 1
-    Ipaddress = "169.105.246.3"
+    IPaddress = "169.105.246.9"
     localPort = 21000
     local_message = None
     bufferSize = 1024
     # Create a datagram socket
     UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
     # Bind to address and ip
-    UDPServerSocket.bind((Ipaddress, localPort))
+    UDPServerSocket.bind((IPaddress, localPort))
+    blacklisted_nodes = []
 
     def __init__(self):
         self.start_threads()
@@ -50,21 +51,25 @@ class GossipProtocol:
     def checkforConvergence(self, data):
         print("data = ", data)
         message_received = data.get("Dictionary")
-        blacklisted_nodes =data.get("BlackListedNodes")
+        self.blacklisted_nodes = data.get("BlackListedNodes")
+        print(self.blacklisted_nodes)
         print("MG-",message_received)
-        print("BL", blacklisted_nodes)
+        print("BL", self.blacklisted_nodes)
         if self.local_message == message_received:
             self.counter += 1
             if self.counter == 10:
-                if self.IPaddress not in blacklisted_nodes:
-                    blacklisted_nodes.append(self.IPaddress)
-                for ip in range(len(self.listofNeighbors)):
-                    if ip in blacklisted_nodes:
-                        continue
-                    else:
-                        blacklisted_nodes.append(ip)
-                if len(blacklisted_nodes) >= 0.75 * len(self.totalNodes):
-                    return True
+                print("Final Msg : ", message_received)
+                sys.exit(0)
+                if len(self.blacklisted_nodes) > 0:
+                    if self.IPaddress not in self.blacklisted_nodes:
+                        self.blacklisted_nodes.append(self.IPaddress)
+                    for ip in range(len(self.listofNeighbors)):
+                        if ip in self.blacklisted_nodes:
+                            continue
+                        else:
+                            self.blacklisted_nodes.append(ip)
+                    if len(self.blacklisted_nodes) >= 0.75 * len(self.totalNodes):
+                        return True
         else:
             self.local_message = message_received
             self.counter = 1
@@ -79,7 +84,8 @@ class GossipProtocol:
         Dict = data.get("Dictionary")
         IPaddress = data.get("IPaddress")
         gossip = data.get("gossip")
-        BlackListedNodes = data.get("BlackListedNodes")
+        BlackListedNodes = self.blacklisted_nodes
+        print("VALUE IN UPDATED", BlackListedNodes)
         #message = json.dumps({"IPaddress": IPaddress, "gossip": gossip_phase, "Dictionary": Dictionary, "BlackListedNodes":BlackListedNodes})
         #print("Message Updated", message)
         return IPaddress, gossip, Dictionary, BlackListedNodes
@@ -127,9 +133,11 @@ class GossipProtocol:
                     print(hostname, 'up')
                     # Call to check capacity
                     if counter == 0:
-                        coordinates = "(0,0)"
+                        coordinates = "(0,1)"
+                    elif counter == 1:
+                        coordinates = "(1,1)"
                     else:
-                        coordinates = "(1,0)"
+                        coordinates = "(-1,0)"
                     capacity_of_neighbors[hostname2] = self.getneighborcapacity(coordinates)
                     counter += 1
                     list_of_neigbors.remove(forwardIP)
