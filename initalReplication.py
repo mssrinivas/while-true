@@ -13,5 +13,6 @@ print(serverAddressPort)
 dict = {"169.105.246.9":7929}
 message=json.dumps({"IPaddress":"169.105.246.9","gossip":False, "Dictionary":dict, "BlackListedNodes":[]})
 UDPClientSocket.sendto(message.encode(),serverAddressPort)
+
 #msgFromServer = UDPClientSocket.recvfrom(bufferSize)
 #msg = "Message from Server {}".format(msgFromServer[0])

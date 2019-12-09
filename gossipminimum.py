@@ -20,7 +20,7 @@ sys.path.append('./service')
 from proto import fileService_pb2, fileService_pb2_grpc
 
 
-import timeit
+import time
 import math
 import cache
 from threading import Lock, Thread
@@ -236,6 +236,7 @@ class GossipProtocol:
                             continue
 
 
+
     def transmit_message(self, hostname, IPaddress, gossip, Dictionary, BlackListedNodes):
         serverAddressPort = (hostname, 21000)
         bufferSize = 1024
@@ -309,3 +310,7 @@ class GossipProtocol:
         # Thread(target=self.replicateContent()).start()
         # Thread(target=self.retries).start()
         Thread(target=self.receive_message).start()
+
+# initalt repl
+# calling main
+# best nodes
