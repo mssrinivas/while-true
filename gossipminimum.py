@@ -174,7 +174,7 @@ class GossipProtocol:
                 print("------------", minimum_capacity, minimum_capacity_neighbor[0],"------------" )
                 IPaddress, gossip, Dictionary, BlackListedNodes = self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
-                    response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n').decode("utf-8"))
+                    response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
                     if response == 0:
                         self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, True, Dictionary, BlackListedNodes)
                     else:
@@ -199,7 +199,7 @@ class GossipProtocol:
                 minimum_capacity = min(minimum_capacity_neighbor[1], received_minimum_capacity)
                 IPaddress, gossip, Dictionary, BlackListedNodes= self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
-                    response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n').decode("utf-8"))
+                    response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
                     if response == 0:
                         self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, True, Dictionary, BlackListedNodes)
                     else:
