@@ -174,7 +174,11 @@ class GossipProtocol:
                 print("------------", minimum_capacity, minimum_capacity_neighbor[0],"------------" )
                 IPaddress, gossip, Dictionary, BlackListedNodes = self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
-                    self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, True, Dictionary, BlackListedNodes)
+                    response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n').decode("utf-8"))
+                    if response == 0:
+                        self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, True, Dictionary, BlackListedNodes)
+                    else:
+                        continue
                 time.sleep(6)
                 # self.replicateData()
                # bestnode_coordinates = self.get_best_node()
@@ -195,7 +199,11 @@ class GossipProtocol:
                 minimum_capacity = min(minimum_capacity_neighbor[1], received_minimum_capacity)
                 IPaddress, gossip, Dictionary, BlackListedNodes= self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
-                    self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, True, Dictionary, BlackListedNodes)
+                    response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n').decode("utf-8"))
+                    if response == 0:
+                        self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, True, Dictionary, BlackListedNodes)
+                    else:
+                        continue
 
     def transmit_message(self, hostname, IPaddress, gossip, Dictionary, BlackListedNodes):
         serverAddressPort = (hostname, 21000)
