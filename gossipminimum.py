@@ -215,7 +215,7 @@ class GossipProtocol:
                     print("------------", minimum_capacity, minimum_capacity_neighbor[0], "------------")
                     print("minimum_capacity_neighbor",minimum_capacity_neighbor[0])
                     print("received_minimum_capacity", received_minimum_capacity)
-                    if received_minimum_capacity != minimum_capacity
+                    if received_minimum_capacity != minimum_capacity:
                         IPaddress, gossip, Dictionary, BlackListedNodes= self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                     for ip in range(len(list_of_neighbors)):
                         response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
