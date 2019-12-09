@@ -124,6 +124,7 @@ class GossipProtocol:
             print("number of neighbours: ",len(list_of_neigbors))
             
             forwardIP = random.choice(list_of_neigbors)
+            print("SENDING NEXT TO = ", forwardIP)
             hostname = str.encode(forwardIP)
             hostname2 = forwardIP
             print("HOSTNAME = ", hostname2, "INT REPL =", initalReplicaServer)
@@ -134,24 +135,29 @@ class GossipProtocol:
                 if response == 0:
                     print(hostname, 'up')
                     # Call to check capacity
-                    if counter == 0:
+                    if hostname2 == "169.105.246.3":
                         coordinates = "(0,1)"
-                    else:
+                    elif hostname2 == "169.105.246.6":
                         coordinates = "(1,1)"
-                    IPaddress, capacity = self.getneighborcapacity(coordinates)
+                    else:
+                        coordinates = "(-1,0)"
+
+                    print("GET COORDINATES CAP OF", coordinates)
+                    IPaddress,capacity = self.getneighborcapacity(coordinates)
+                    print("GET CAPACITY OF NEIGHBORS = ", IPaddress, capacity)
                     capacity_of_neighbors[IPaddress] = capacity
                     counter += 1
                     list_of_neigbors.remove(hostname2)
-                    #break
                 else:
                     print(hostname, 'down')
+                    counter += 1
                     list_of_neigbors.remove(hostname2)
             else:
                 list_of_neigbors.remove(hostname2)
                 continue
 
         if len(capacity_of_neighbors) == 0:
-            return [sys.maxsize, sys.maxsize]
+            return [initalReplicaServer, 7929]
         else:
             print("C O N",capacity_of_neighbors)
             first_minimum = self.find_minimum_in_dictionary(capacity_of_neighbors)
@@ -161,6 +167,7 @@ class GossipProtocol:
         while True:
             messageReceived, address = self.UDPServerSocket.recvfrom(1024)
             data = json.loads(messageReceived.decode())
+            print("GOT DATA ", data, " FROM", address[0])
             IPaddress = data.get("IPaddress")
             gossip_flag = data.get("gossip")
             
@@ -172,12 +179,19 @@ class GossipProtocol:
                 list_of_neighbors = self.fetch_all_neighbors()
                 minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(IPaddress)
                 max_size = sys.maxsize
+                print("minimum_capacity_neighbor - ", minimum_capacity_neighbor)
                 minimum_capacity = min(minimum_capacity_neighbor[1], max_size)
                 self.counter = 1
+                print("------------", minimum_capacity, minimum_capacity_neighbor[0],"------------" )
                 IPaddress, gossip, Dictionary, BlackListedNodes = self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
-                    print("SENDING TO")
-                    self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, True, Dictionary, BlackListedNodes)
+                    response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
+                    if response == 0:
+                        IPaddressOne = list_of_neighbors[ip].strip('\n')
+                        print("SENDING----------",IPaddressOne, IPaddress, True, Dictionary, BlackListedNodes)
+                        self.transmit_message(IPaddressOne, IPaddress, True, Dictionary, BlackListedNodes)
+                    else:
+                        continue
                 time.sleep(6)
                 # self.replicateData()
                # bestnode_coordinates = self.get_best_node()
@@ -193,17 +207,27 @@ class GossipProtocol:
                 dict = data.get("Dictionary")
                 print("incoming..............")
                 received_minimum_capacity = dict[list(dict.keys())[0]]
+                print("minimum_capacity_neighbor - ", minimum_capacity_neighbor)
                 minimum_capacity = min(minimum_capacity_neighbor[1], received_minimum_capacity)
+                print("------------", minimum_capacity, minimum_capacity_neighbor[0], "------------")
+                print("minimum_capacity_neighbor",minimum_capacity_neighbor[0])
+                print("received_minimum_capacity", received_minimum_capacity)
                 IPaddress, gossip, Dictionary, BlackListedNodes= self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
-                    self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, True, Dictionary, BlackListedNodes)
+                    response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
+                    if response == 0:
+                        IPaddressOne = list_of_neighbors[ip].strip('\n')
+                        print("SENDING----------", IPaddressOne, IPaddress, True, Dictionary, BlackListedNodes)
+                        self.transmit_message(IPaddressOne, IPaddress, True, Dictionary, BlackListedNodes)
+                    else:
+                        continue
 
     def transmit_message(self, hostname, IPaddress, gossip, Dictionary, BlackListedNodes):
         serverAddressPort = (hostname, 21000)
         bufferSize = 1024
         #message = json.dumps(message_to_be_gossiped)
-        #print("Sending message to", message)
         message = json.dumps({"IPaddress": IPaddress, "gossip":gossip, "Dictionary":Dictionary,"BlackListedNodes":BlackListedNodes})
+        print("Sending message to", message)
         self.UDPServerSocket.sendto(message.encode(), serverAddressPort)
 
     #def replicateData()
@@ -234,7 +258,7 @@ class GossipProtocol:
             metadata_dict = json.load(f)
         nodes = metadata_dict['capacities']
         print("all nodes", nodes[next_node])
-        return nodes[next_node][0], nodes[next_node][1]
+        return nodes[next_node][0],nodes[next_node][1]
 
     def ReplicateFile(self, request, context):
         print("request",  request.path)
