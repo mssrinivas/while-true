@@ -40,7 +40,6 @@ class GossipProtocol:
     UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
     # Bind to address and ip
     UDPServerSocket.bind((IPaddress, localPort))
-    local_message = None
     blacklisted_nodes = []
 
     def __init__(self):
@@ -52,21 +51,24 @@ class GossipProtocol:
     def checkforConvergence(self, data):
         print("data = ", data)
         message_received = data.get("Dictionary")
-        self.blacklisted_nodes =data.get("BlackListedNodes")
+        self.blacklisted_nodes = data.get("BlackListedNodes")
+        print(self.blacklisted_nodes)
         print("MG-",message_received)
         print("BL", self.blacklisted_nodes)
         if self.local_message == message_received:
             self.counter += 1
             if self.counter == 10:
-                if len( self.blacklisted_nodes )  > 0:
-                    if self.IPaddress not in blacklisted_nodes:
+                print("Final Msg : ", message_received)
+                sys.exit(0)
+                if len(self.blacklisted_nodes) > 0:
+                    if self.IPaddress not in self.blacklisted_nodes:
                         self.blacklisted_nodes.append(self.IPaddress)
-                    for ip in range( len( self.listofNeighbors ) ):
-                        if ip in blacklisted_nodes:
+                    for ip in range(len(self.listofNeighbors)):
+                        if ip in self.blacklisted_nodes:
                             continue
                         else:
-                            blacklisted_nodes.append(ip)
-                    if len( blacklisted_nodes ) >= 0.75 * len( self.totalNodes ):
+                            self.blacklisted_nodes.append(ip)
+                    if len(self.blacklisted_nodes) >= 0.75 * len(self.totalNodes):
                         return True
         else:
             self.local_message = message_received
@@ -82,8 +84,9 @@ class GossipProtocol:
         Dictionary = {leastUsedIP: minimum_capacity}
         Dict = data.get("Dictionary")
         IPaddress = data.get("IPaddress")
-        gossip = data.get("gossip")
+        gossip = gossip_phase
         BlackListedNodes = self.blacklisted_nodes
+        print("VALUE IN UPDATED", BlackListedNodes)
         #message = json.dumps({"IPaddress": IPaddress, "gossip": gossip_phase, "Dictionary": Dictionary, "BlackListedNodes":BlackListedNodes})
         #print("Message Updated", message)
         return IPaddress, gossip, Dictionary, BlackListedNodes
@@ -125,7 +128,7 @@ class GossipProtocol:
             hostname2 = forwardIP
             print("HOSTNAME = ", hostname2, "INT REPL =", initalReplicaServer)
             if hostname2 != initalReplicaServer:
-                print("ping -c 3 " + hostname.decode("utf-8"))
+                print("ping -c 1 " + hostname.decode("utf-8"))
                 response = os.system("ping -c 1 " + hostname.decode("utf-8"))
                 # and then check the response
                 if response == 0:
@@ -135,15 +138,16 @@ class GossipProtocol:
                         coordinates = "(0,1)"
                     else:
                         coordinates = "(1,1)"
-                    capacity_of_neighbors[hostname2] = self.getneighborcapacity(coordinates)
+                    IPaddress, capacity = self.getneighborcapacity(coordinates)
+                    capacity_of_neighbors[IPaddress] = capacity
                     counter += 1
-                    list_of_neigbors.remove(forwardIP)
+                    list_of_neigbors.remove(hostname2)
                     #break
                 else:
                     print(hostname, 'down')
-                    list_of_neigbors.remove(forwardIP)
+                    list_of_neigbors.remove(hostname2)
             else:
-                list_of_neigbors.remove(forwardIP)
+                list_of_neigbors.remove(hostname2)
                 continue
 
         if len(capacity_of_neighbors) == 0:
@@ -230,7 +234,7 @@ class GossipProtocol:
             metadata_dict = json.load(f)
         nodes = metadata_dict['capacities']
         print("all nodes", nodes[next_node])
-        return nodes[next_node][1]
+        return nodes[next_node][0], nodes[next_node][1]
 
     def ReplicateFile(self, request, context):
         print("request",  request.path)
