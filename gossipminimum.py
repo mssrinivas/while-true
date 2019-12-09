@@ -60,7 +60,7 @@ class GossipProtocol:
             if self.local_message == message_received:
                 print("COUNTER =", self.counter)
                 self.counter += 1
-                if self.counter >= 2:
+                if self.counter >= 5:
                     BlackListedNodes = []
                     BlackListedNodes.append(self.IPaddress)
                     listofNeighbors = self.fetch_all_neighbors()
@@ -71,7 +71,7 @@ class GossipProtocol:
                             continue
                         else:
                             BlackListedNodes.append(listofNeighbors[ip])
-                    if len(BlackListedNodes) >= 2:
+                    if len(BlackListedNodes) >= 4:
                         print("CAME HERE-111")
                         self.counter = 1
                         return True
@@ -99,7 +99,7 @@ class GossipProtocol:
                             BlackListedNodes.append(listofNeighbors[ip])
                     print("NEW BL", BlackListedNodes)
                     # if len(self.blacklisted_nodes) >= 0.75 * len(self.totalNodes):
-                    if len(BlackListedNodes) >= 2:
+                    if len(BlackListedNodes) >= 4:
                         print("CAME HERE-222")
                         self.counter = 1
                         return True
@@ -170,10 +170,10 @@ class GossipProtocol:
                 if response == 0:
                     print(hostname, 'up')
                     # Call to check capacity
-                    if hostname2 == "169.105.246.9":
-                        coordinates = "(0,0)"
-                    elif hostname2 == "169.105.246.4":
-                        coordinates = "(1,0)"
+                    if hostname2 == "169.105.246.3":
+                        coordinates = "(0,1)"
+                    elif hostname2 == "169.105.246.6":
+                        coordinates = "(1,1)"
                     else:
                         coordinates = "(-1,0)"
 
