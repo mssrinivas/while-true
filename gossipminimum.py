@@ -83,7 +83,7 @@ class GossipProtocol:
         Dictionary = {leastUsedIP: minimum_capacity}
         Dict = data.get("Dictionary")
         IPaddress = data.get("IPaddress")
-        gossip = data.get("gossip")
+        gossip = gossip_phase
         BlackListedNodes = self.blacklisted_nodes
         print("VALUE IN UPDATED", BlackListedNodes)
         #message = json.dumps({"IPaddress": IPaddress, "gossip": gossip_phase, "Dictionary": Dictionary, "BlackListedNodes":BlackListedNodes})
@@ -126,7 +126,7 @@ class GossipProtocol:
             hostname2 = forwardIP
             print("HOSTNAME = ", hostname2, "INT REPL =", initalReplicaServer)
             if hostname2 != initalReplicaServer:
-                print("ping -c 3 " + hostname.decode("utf-8"))
+                print("ping -c 1 " + hostname.decode("utf-8"))
                 response = os.system("ping -c 1 " + hostname.decode("utf-8"))
                 # and then check the response
                 if response == 0:
@@ -138,14 +138,15 @@ class GossipProtocol:
                         coordinates = "(1,1)"
                     else:
                         coordinates = "(-1,0)"
-                    capacity_of_neighbors[hostname2] = self.getneighborcapacity(coordinates)
+                    IPaddress,capacity = self.getneighborcapacity(coordinates)
+                    capacity_of_neighbors[IPaddress] = capacity
                     counter += 1
-                    list_of_neigbors.remove(forwardIP)
+                    list_of_neigbors.remove(hostname2)
                 else:
                     print(hostname, 'down')
-                    list_of_neigbors.remove(forwardIP)
+                    list_of_neigbors.remove(hostname2)
             else:
-                list_of_neigbors.remove(forwardIP)
+                list_of_neigbors.remove(hostname2)
                 continue
 
         if len(capacity_of_neighbors) == 0:
@@ -170,6 +171,7 @@ class GossipProtocol:
                 max_size = sys.maxsize
                 minimum_capacity = min(minimum_capacity_neighbor[1], max_size)
                 self.counter = 1
+                print("------------", minimum_capacity, minimum_capacity_neighbor[0],"------------" )
                 IPaddress, gossip, Dictionary, BlackListedNodes = self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
                 for ip in range(len(list_of_neighbors)):
                     self.transmit_message(list_of_neighbors[ip].strip('\n'), IPaddress, True, Dictionary, BlackListedNodes)
@@ -184,10 +186,11 @@ class GossipProtocol:
             elif gossip_flag == True and Convergence_Value == False:
                 print("IN ELIF")
                 list_of_neighbors = self.fetch_all_neighbors()
-                minimum_capacity_neighbor = self.get_minimum_capacity_neighbors( IPaddress)
+                minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(IPaddress)
                 dict = data.get("Dictionary")
                 received_minimum_capacity = dict[list(dict.keys())[0]]
-                print("minimum_capacity_neighbor",minimum_capacity_neighbor[1])
+                print("------------", minimum_capacity, minimum_capacity_neighbor[0], "------------")
+                print("minimum_capacity_neighbor",minimum_capacity_neighbor[0])
                 print("received_minimum_capacity", received_minimum_capacity)
                 minimum_capacity = min(minimum_capacity_neighbor[1], received_minimum_capacity)
                 IPaddress, gossip, Dictionary, BlackListedNodes= self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
@@ -230,7 +233,7 @@ class GossipProtocol:
             metadata_dict = json.load(f)
         nodes = metadata_dict['capacities']
         print("all nodes", nodes[next_node])
-        return nodes[next_node][1]
+        return nodes[next_node][0],nodes[next_node][1]
 
     def ReplicateFile(self, request, context):
         print("request",  request.path)
