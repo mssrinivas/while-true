@@ -23,6 +23,7 @@ import math
 import cache
 from threading import Lock, Thread
 import collections
+import numpy as np
 
 
 class GossipProtocol:
@@ -86,7 +87,7 @@ class GossipProtocol:
         if BlackListedNodes != None:
             if self.local_message == message_received:
                 self.counter += 1
-                if self.counter >= 2:
+                if self.counter >= 5:
                     print("Final Msg : ", message_received)
                     if self.IPaddress not in BlackListedNodes:
                         BlackListedNodes.append(self.IPaddress)
@@ -198,6 +199,7 @@ class GossipProtocol:
     def receive_message(self):
         while True:
             messageReceived, address = self.UDPServerSocket.recvfrom(1024)
+            self.getPath()
             data = json.loads(messageReceived.decode())
             print("GOT DATA ", data, " FROM", address[0])
             IPaddress = data.get("IPaddress")
@@ -279,7 +281,8 @@ class GossipProtocol:
         bufferSize = 1024
         # message = json.dumps(message_to_be_gossiped)
         message = json.dumps(
-            {"IPaddress": IPaddress, "gossip": gossip, "Dictionary": Dictionary, "BlackListedNodes": self.blacklisted_nodes})
+            {"IPaddress": IPaddress, "gossip": gossip, "Dictionary": Dictionary,
+             "BlackListedNodes": self.blacklisted_nodes})
         print("Sending message to", message)
         self.UDPServerSocket.sendto(message.encode(), serverAddressPort)
 
@@ -315,34 +318,99 @@ class GossipProtocol:
 
     def ReplicateFile(self, request, context):
         print("request", request.path)
-        next_node = request.shortest_path[request.currentpos]
+        next_node = request.path[request.currentpos]
         if request.currentpos == len(request.path) - 1:
             cache.set(request, request)
-            return fileService_pb2.ack(success=True, message="Data Replicated.")
+            return fileService_pb2.ack( success=True, message="Data Replicated." )
         else:
             forward_server_addr = self.getneighbordata(next_node)
             forward_port = 50051
-            forward_channel = grpc.insecure_channel(
-                forward_server_addr + ":" + str(forward_port))
-            forward_stub = fileService_pb2_grpc.FileserviceStub(
-                forward_channel)
-            request.currentpos += 1
-            forward_resp = forward_stub.ReplicateFile(request)
-            print("forward_resp", forward_resp)
-            return fileService_pb2.ack(success=True, message="Data Forwarded.")
+            forward_channel = grpc.insecure_channel(forward_server_addr + ":" + str(forward_port))
+            forward_stub = fileService_pb2_grpc.FileserviceStub(forward_channel)
+            currentpos = request.currentpos + 1
+            new_request = fileService_pb2.FileData( initialReplicaServer=request.intial_Replicate_Server, bytearray=request.bytes_read_from_memory,
+                                           vClock=request.vClock, currentpos = currentpos )
+            forward_resp = forward_stub.ReplicateFile(new_request)
+            print( "forward_resp", forward_resp )
+            return fileService_pb2.ack( success=True, message="Data Forwarded." )
 
-    def bfs(self, grid, start, goal, rows, columns):
-        queue = collections.deque([[start]])
-        seen = set([start])
-        while queue:
-            path = queue.popleft()
-            y, x = path[-1]
-            if grid[y][x] == goal:
-                return path
-            for x2, y2 in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-                if 0 <= x2 < rows and 0 <= y2 < columns and grid[y2][x2] != 0 and (x2, y2) not in seen:
-                    queue.append(path + [(x2, y2)])
-                    seen.add((x2, y2))
+
+
+    def getPath(self):
+        my_list = [(1, -1), (1, 0), (-1, 0), (0, 0), (0, 1), (1, 1)]
+        my_list = sorted(my_list, key=lambda k: [k[1], k[0]])
+        my_list = sorted(my_list, key=lambda k: [k[0], k[1]])
+        # print(my_list)
+        dicty = {}
+        counter = 0
+        listy = []
+        for i in my_list:
+            dicty[counter] = i
+            listy.append(counter)
+            counter += 1
+        # print(dicty)
+        x = np.array(listy)
+        a = np.reshape(x, (2, 3))
+        string_list = []
+        for i in range(len(a)):
+            temp = ""
+            for j in range(len(a[i])):
+                temp += str(a[i][j])
+            string_list.append(temp)
+        col = 0
+        row = 0
+        goal = "5"
+        columns = 3
+        rows = 2
+
+        def bfs(grid, start):
+            queue = collections.deque([[start]])
+            seen = set([start])
+            while queue:
+                path = queue.popleft()
+                x, y = path[-1]
+                if grid[y][x] == goal:
+                    return path
+                for x2, y2 in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if 0 <= x2 < columns and 0 <= y2 < rows and grid[y2][x2] != -1 and (x2, y2) not in seen:
+                        queue.append(path + [(x2, y2)])
+                        seen.add((x2, y2))
+
+        path = bfs(string_list, (col, row))
+        print("PATHHHH==",path)
+        # my_list = [(1, -1), (1, 0), (-1, 0), (0, 0), (0, 1), (1, 1)]
+        # # my_list = metadata
+        # my_list = sorted(my_list, key=lambda k: [k[1], k[0]])
+        # my_list = sorted(my_list, key=lambda k: [k[0], k[1]])
+        # # print(my_list)
+        # dicty = {}
+        # counter = 0
+        # listy = []
+        # for i in my_list:
+        #     dicty[counter] = i
+        #     listy.append(counter)
+        #     counter += 1
+        # # print(dicty)
+        # x = np.array(listy)
+        # # number_of_rows = self.get_number_of_rows(metadata)
+        # number_of_rows = 2
+        # # number_of_cols = self.get_number_of_cols(metadata)
+        # number_of_cols = 3
+        # a = np.reshape(x, (number_of_rows, number_of_cols))
+        # string_list = []
+        # for i in range(len(a)):
+        #     temp = ""
+        #     for j in range(len(a[i])):
+        #         temp += str(a[i][j])
+        #     string_list.append(temp)
+        # destination = 5
+        # width, height = number_of_cols, number_of_rows
+        # # grid = [
+        # # "012",
+        # # "345"]
+        # start = (0, 0)
+        # path = self.bfs(string_list, start, destination, width, height)
+        # print(path)
 
     def start_threads(self):
         # Thread(target=self.replicateContent()).start()
