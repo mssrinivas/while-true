@@ -43,6 +43,8 @@ class GossipProtocol:
     minimum_IP = None
     minimum_Capacity = None
     listofNeighbors = []
+    path = [(0, 0), (0, 1), (0, 2)]
+    counter = 1
 
     def __init__(self):
         self.start_threads()
@@ -316,24 +318,27 @@ class GossipProtocol:
         return nodes[next_node][0], nodes[next_node][1]
 
     def ReplicateFile(self, request, context):
-        print("request", request.path)
-        next_node = request.shortest_path[request.currentpos]
-        if request.currentpos == len(request.path) - 1:
+        print("request", request.shortest_path)
+        # next_node = request.shortest_path[request.currentpos]
+        if request.currentpos == len(request.shortest_path) - 1:
             cache.set(request, request)
             return fileService_pb2.ack(success=True, message="Data Replicated.")
         else:
-            forward_server_addr = self.getneighbordata(next_node)
+            # forward_server_addr = self.getneighbordata(next_node)
+            forward_server_addr = "169.105.246.6"
             forward_port = 50051
-            forward_channel = grpc.insecure_channel(
-                forward_server_addr + ":" + str(forward_port))
-            forward_stub = fileService_pb2_grpc.FileserviceStub(
-                forward_channel)
+            forward_channel = grpc.insecure_channel(forward_server_addr + ":" + str(forward_port))
+            forward_stub = fileService_pb2_grpc.FileserviceStub(forward_channel)
             request.currentpos += 1
-            forward_resp = forward_stub.ReplicateFile(request)
+            rList = [1, 2, 3, 4, 5]
+            arr = bytearray(rList)
+            updated_request = fileService_pb2.FileData(initialReplicaServer=request.initialReplicaServer,
+                                                       bytearray=request.bytearray, vClock=request.vClock,
+                                                       shortest_path=request.shortest_path,
+                                                       currentpos=request.currentpos + 1)
+            forward_resp = forward_stub.ReplicateFile()
             print("forward_resp", forward_resp)
             return fileService_pb2.ack(success=True, message="Data Forwarded.")
-
-
 
     def getPath(self):
         my_list = [(1, -1), (1, 0), (-1, 0), (0, 0), (0, 1), (1, 1)]
@@ -376,7 +381,8 @@ class GossipProtocol:
                         seen.add((x2, y2))
 
         path = bfs(string_list, (col, row))
-        print("PATHHHH==",path)
+        print("PATHHHH==", path)
+
         # my_list = [(1, -1), (1, 0), (-1, 0), (0, 0), (0, 1), (1, 1)]
         # # my_list = metadata
         # my_list = sorted(my_list, key=lambda k: [k[1], k[0]])
