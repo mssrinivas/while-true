@@ -341,7 +341,7 @@ class GossipProtocol:
                                                        bytearray=request.bytearray, vClock=request.vClock,
                                                        shortest_path=request.shortest_path,
                                                        currentpos=request.currentpos + 1)
-            forward_resp = forward_stub.ReplicateFile()
+            forward_resp = forward_stub.ReplicateFile(updated_request)
             print("forward_resp", forward_resp)
             return fileService_pb2.ack(success=True, message="Data Forwarded.")
     
