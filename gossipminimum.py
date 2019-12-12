@@ -31,7 +31,7 @@ class GossipProtocol:
     totalNodes = [1234, 3456, 7899, 7543]
     sys.setrecursionlimit(200000)
     localMinimumCapacity = -sys.maxsize - 1
-    IPaddress = "169.105.246.4"
+    IPaddress = "169.105.246.3"
     localPort = 21000
     local_message = None
     bufferSize = 1024
@@ -43,7 +43,7 @@ class GossipProtocol:
     minimum_IP = None
     minimum_Capacity = None
     listofNeighbors = []
-    path = ["(0, 0)", "(0, 1)", "(0, 2)"]
+    path = ["(0,0)", "(0,1)", "(0,2)"]
     counter = 1
 
 
@@ -137,7 +137,7 @@ class GossipProtocol:
 
     def fetch_all_neighbors(self):
         list_of_neigbors = []
-        filepath = '/Users/mathewsojan/SoftwareEngineering/CMPE275/pythonReplication/data/neighbors.txt'
+        filepath = 'data/neighbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
@@ -149,7 +149,7 @@ class GossipProtocol:
     def get_minimum_capacity_neighbors(self, initalReplicaServer):
         list_of_neigbors = []
         capacity_of_neighbors = { self.IPaddress : 7939 }
-        filepath = '/Users/mathewsojan/SoftwareEngineering/CMPE275/pythonReplication/data/neighbors.txt'
+        filepath = 'data/neighbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
@@ -308,22 +308,20 @@ class GossipProtocol:
     # send acknwoledgment back using same pathlist ()
 
     def getneighbordata(self, next_node):
-        with open('/Users/mathewsojan/SoftwareEngineering/CMPE275/pythonReplication/data/metadata.json', 'r') as f:
+        with open('data/metadata.json', 'r') as f:
             metadata_dict = json.load(f)
         nodes = metadata_dict['nodes']
         return nodes[next_node]
 
     def getneighborcapacity(self, next_node):
-        with open('/Users/mathewsojan/SoftwareEngineering/CMPE275/pythonReplication/data/metadata.json', 'r') as f:
+        with open('data/metadata.json', 'r') as f:
             metadata_dict = json.load(f)
         nodes = metadata_dict['capacities']
         print("all nodes", nodes[next_node])
         return nodes[next_node][0], nodes[next_node][1]
 
     def ReplicateFile(self, request, context):
-
         print("request", request.shortest_path)
-
         # next_node = request.shortest_path[request.currentpos]
         if request.currentpos == len(request.shortest_path) - 1:
             cache.set(request, request)

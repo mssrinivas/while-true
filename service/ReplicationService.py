@@ -12,14 +12,18 @@ import fileService_pb2
 class ReplicationService(fileService_pb2_grpc.FileserviceServicer):
 
     def ReplicateFile(self, request, context):
-        print("request", request)
-        # next_node = request.shortest_path[request.currentpos]
-        if request.currentpos == len(request.shortest_path) - 1:
-            cache.saveVClock(str(request), str(request))
-            return fileService_pb2.ack(success=True, message="Data Replicated.")
-        else:
+            #print("request =", request.shortest_path[request.currentpos])
+        # # next_node = request.shortest_path[request.currentpos]
+        # if request.currentpos == len(request.shortest_path) - 1:
+        #     cache.saveVClock(str(request), str(request))
+        #     return fileService_pb2.ack(success=True, message="Data Replicated.")
+        # else:
             # forward_server_addr = self.getneighbordata(next_node)
-            forward_server_addr = self.GetNeighborfromCoordinates(request.shortest_path, request.currentpos)
+            #path = json.loads(request.shortest_path)
+            forward_coordinates = request.shortest_path[request.currentpos]
+            print("forward coord =", forward_coordinates)
+            forward_server_addr = self.getneighbordata(forward_coordinates)
+            print("forward IP =", forward_server_addr)
             forward_port = 50051
             forward_channel = grpc.insecure_channel(forward_server_addr + ":" + str(forward_port))
             forward_stub = fileService_pb2_grpc.FileserviceStub(forward_channel)
@@ -34,10 +38,19 @@ class ReplicationService(fileService_pb2_grpc.FileserviceServicer):
             print("forward_resp", forward_resp)
             return fileService_pb2.ack(success=True, message="Data Forwarded.")
 
-    def GetNeighborfromCoordinates(self, path, counter):
-        path = json.loads(path)
-        forward_coordinates = path[counter]
-        all_neighbors = self.get_all_neighbors()
-        for node in all_neighbors:
-            if forward_coordinates == node.coordinates:
-                return node.ipaddress
+    def getneighbordata(self, next_node):
+        print("CAMEHERE")
+        with open('data/metadata.json', 'r') as f:
+            metadata_dict = json.load(f)
+        print("'"+next_node+"'")
+        nodes = metadata_dict['nodes']
+        print(nodes)
+        return nodes[next_node]
+
+
+
+
+            
+            
+
+
